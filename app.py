@@ -714,6 +714,22 @@ def create_doubt():
             ""
         ).strip()
 
+        valid, error = validate_content(subject)
+        
+        if not valid:
+            return render_template(
+                "create_doubt.html",
+                error=error
+            )
+        
+        valid, error = validate_content()
+        
+        if not valid:
+            return render_template(
+                "create_doubt.html",
+                error=error
+            )
+
         if not title or not body:
             return render_template(
                 "create_doubt.html",
