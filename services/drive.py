@@ -1,9 +1,7 @@
 import os
 import time
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -11,10 +9,6 @@ from googleapiclient.http import MediaFileUpload
 SCOPES = [
     "https://www.googleapis.com/auth/drive"
 ]
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
-TOKEN_FILE = os.path.join(BASE_DIR, "token.json")
 
 ROOT_FOLDER_ID = "1zOsOYCtlXu9C6qMyVb2X-haAtOzdj936"
 
@@ -24,26 +18,29 @@ CACHE_DURATION = 60
 
 
 def get_drive_service():
-    credentials = None
+    private_key = os.environ["GOOGLE_PRIVATE_KEY"].replace(
+        "\\n",
+        "\n"
+    )
 
-    if os.path.exists(TOKEN_FILE):
-        credentials = Credentials.from_authorized_user_file(
-            TOKEN_FILE,
-            SCOPES
+    service_account_info = {
+        "type": os.environ["GOOGLE_TYPE"],
+        "project_id": os.environ["GOOGLE_PROJECT_ID"],
+        "private_key_id": os.environ["GOOGLE_PRIVATE_KEY_ID"],
+        "private_key": private_key,
+        "client_email": os.environ["GOOGLE_CLIENT_EMAIL"],
+        "client_id": os.environ["GOOGLE_CLIENT_ID"],
+        "token_uri": os.environ["GOOGLE_TOKEN_URI"]
+    }
+
+    credentials = (
+        service_account
+        .Credentials
+        .from_service_account_info(
+            service_account_info,
+            scopes=SCOPES
         )
-
-    if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                CREDENTIALS_FILE,
-                SCOPES
-            )
-            credentials = flow.run_local_server(port=0)
-
-        with open(TOKEN_FILE, "w") as token:
-            token.write(credentials.to_json())
+    )
 
     return build(
         "drive",
@@ -67,7 +64,9 @@ def get_children(service, folder_id):
     files = response.get("files", [])
 
     for file in files:
-        file["url"] = f"https://drive.google.com/open?id={file['id']}"
+        file["url"] = (
+            f"https://drive.google.com/open?id={file['id']}"
+        )
 
     return files
 
@@ -84,19 +83,34 @@ def get_folder(service, folder_id):
 def get_structure(service):
     subjects = []
 
-    for subject in get_children(service, ROOT_FOLDER_ID):
-        if subject["mimeType"] != "application/vnd.google-apps.folder":
+    for subject in get_children(
+        service,
+        ROOT_FOLDER_ID
+    ):
+        if (
+            subject["mimeType"]
+            != "application/vnd.google-apps.folder"
+        ):
             continue
 
         chapters = []
 
-        for chapter in get_children(service, subject["id"]):
-            if chapter["mimeType"] != "application/vnd.google-apps.folder":
+        for chapter in get_children(
+            service,
+            subject["id"]
+        ):
+            if (
+                chapter["mimeType"]
+                != "application/vnd.google-apps.folder"
+            ):
                 continue
 
             resources = []
 
-            for resource in get_children(service, chapter["id"]):
+            for resource in get_children(
+                service,
+                chapter["id"]
+            ):
                 resources.append({
                     "name": resource["name"],
                     "id": resource["id"],
@@ -136,6 +150,29 @@ def get_cached_structure(service):
     return _structure_cache
 
 
+def upload_file(
+    service,
+    filepath,
+    filename,
+    folder_id
+):
+    metadata = {
+        "name": filename,
+        "parents": [folder_id]
+    }
+
+    media = MediaFileUpload(
+        filepath,
+        resumable=True
+    )
+
+    return service.files().create(
+        body=metadata,
+        media_body=media,
+        fields="id, name, mimeType, webViewLink"
+    ).execute()
+
+
 if __name__ == "__main__":
     service = get_drive_service()
     structure = get_structure(service)
@@ -148,23 +185,3 @@ if __name__ == "__main__":
 
             for resource in chapter["resources"]:
                 print(f"    - {resource['name']}")
-
-def upload_file(service, filepath, filename, folder_id):
-    metadata = {
-        "name": filename,
-        "parents": [folder_id]
-    }
-
-    media = MediaFileUpload(
-        filepath,
-        resumable=True
-    )
-
-    try:
-        return service.files().create(
-            body=metadata,
-            media_body=media,
-            fields="id, name, mimeType, webViewLink"
-        ).execute()
-    finally:
-        media._fd.close()
