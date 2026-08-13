@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {{ doubt.title }} | StudySpace
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="nav-brand"
+        >
+            StudySpace
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('index') }}">
+                Resources
+            </a>
+
+            <a href="{{ url_for('doubts') }}">
+                Doubts
+            </a>
+
+            <a href="{{ url_for('upload') }}">
+                Upload
+            </a>
+
+            <a href="{{ url_for('leaderboard') }}">
+                Leaderboard
+            </a>
+
+            <a href="{{ url_for('profile') }}">
+                Profile
+            </a>
+
+        </div>
+
+
+        <div class="nav-actions">
+
+            <div class="notification-wrapper">
+
+                <button
+                    type="button"
+                    class="notification-button"
+                    id="notification-button"
+                    aria-label="Notifications"
+                >
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='images/bell.svg'
+                        ) }}"
+                        alt=""
+                    >
+
+                    {% if unread_notifications > 0 %}
+
+                        <span class="notification-badge">
+                            {{ unread_notifications }}
+                        </span>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="notification-popup"
+                    id="notification-popup"
+                    hidden
+                >
+
+                    <div class="notification-popup-header">
+
+                        <h3>
+                            Notifications
+                        </h3>
+
+                        <a href="{{ url_for('notifications') }}">
+                            View all
+                        </a>
+
+                    </div>
+
+
+                    <div class="notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <a
+                                    href="{{ url_for('notifications') }}"
+                                    class="
+                                        notification-item
+                                        {% if not notification.is_read %}
+                                            unread
+                                        {% endif %}
+                                    "
+                                >
+
+                                    <div class="notification-dot"></div>
+
+
+                                    <div class="notification-content">
+
+                                        <strong>
+                                            {{ notification.title }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message }}
+                                        </p>
+
+                                        <span>
+                                            {{ notification.created_at }}
+                                        </span>
+
+                                    </div>
+
+                                </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="notification-empty">
+
+                                <div class="notification-empty-icon">
+                                    ✓
+                                </div>
+
+                                <p>
+                                    You're all caught up.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+            >
+                <span id="theme-icon">☾</span>
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <main class="doubt-page">
+
+        <a
+            href="{{ url_for('doubts') }}"
+            class="back-link"
+        >
+            ← Back to doubts
+        </a>
+
+
+        <article class="doubt-detail">
+
+            <div class="doubt-meta">
+
+                {% if doubt.subject %}
+                    <span>
+                        {{ doubt.subject }}
+                    </span>
+                {% endif %}
+
+                {% if doubt.chapter %}
+                    <span>
+                        {{ doubt.chapter }}
+                    </span>
+                {% endif %}
+
+            </div>
+
+
+            <h1>
+                {{ doubt.title }}
+            </h1>
+
+
+            <div class="doubt-author">
+
+                {% if doubt.profile_picture %}
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='uploads/profile_pictures/' + doubt.profile_picture
+                        ) }}"
+                        alt=""
+                        class="avatar-small"
+                    >
+
+                {% else %}
+
+                    <span class="avatar-small avatar-fallback">
+                        {{ doubt.display_name[0] | upper }}
+                    </span>
+
+                {% endif %}
+
+                <span>
+                    Asked by
+                    <strong>
+                        {{ doubt.display_name }}
+                    </strong>
+                </span>
+
+            </div>
+
+
+            <div class="doubt-body">
+                {{ doubt.body }}
+            </div>
+
+        </article>
+
+
+        <section class="replies-section">
+
+            <div class="section-heading">
+
+                <h2>
+                    Replies
+                </h2>
+
+                <span>
+                    {{ replies | length }}
+                </span>
+
+            </div>
+
+
+            {% for reply in replies %}
+
+                <article
+                    class="
+                        reply-card
+                        {% if reply.is_correct %}
+                            solution-reply
+                        {% endif %}
+                    "
+                >
+
+                    <div class="reply-header">
+
+                        <div class="reply-author">
+
+                            {% if reply.profile_picture %}
+
+                                <img
+                                    src="{{ url_for(
+                                        'static',
+                                        filename='uploads/profile_pictures/' + reply.profile_picture
+                                    ) }}"
+                                    alt=""
+                                    class="avatar-small"
+                                >
+
+                            {% else %}
+
+                                <span class="avatar-small avatar-fallback">
+                                    {{ reply.display_name[0] | upper }}
+                                </span>
+
+                            {% endif %}
+
+                            <strong>
+                                {{ reply.display_name }}
+                            </strong>
+
+                        </div>
+
+
+                        {% if reply.is_correct %}
+
+                            <span class="solution-badge">
+                                ✓ Solution
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <p>
+                        {{ reply.body }}
+                    </p>
+
+
+                    {% if not reply.is_correct and doubt.user_id == session["user_id"] %}
+
+                        <form
+                            method="POST"
+                            action="{{
+                                url_for(
+                                    'mark_solution',
+                                    doubt_id=doubt.id,
+                                    reply_id=reply.id
+                                )
+                            }}"
+                            class="solution-form"
+                        >
+
+                            <button
+                                type="submit"
+                                class="solution-button"
+                            >
+                                Mark as solution
+                            </button>
+
+                        </form>
+
+                    {% endif %}
+
+                </article>
+
+            {% else %}
+
+                <div class="empty-state small">
+
+                    <h3>
+                        No replies yet
+                    </h3>
+
+                    <p>
+                        Be the first to help with this doubt.
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        </section>
+
+
+        <section class="reply-form-section">
+
+            <h2>
+                Add a reply
+            </h2>
+
+            <form
+                method="POST"
+                action="{{
+                    url_for(
+                        'add_reply',
+                        doubt_id=doubt.id
+                    )
+                }}"
+                class="reply-form"
+            >
+
+                <textarea
+                    name="body"
+                    rows="5"
+                    maxlength="3000"
+                    placeholder="Share how you would solve this..."
+                    required
+                ></textarea>
+
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Post reply
+                </button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>

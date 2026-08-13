@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Create Account | StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    <main class="auth-page">
+
+        <div class="auth-container">
+
+            <div class="auth-brand">
+                <h1>StudySpace</h1>
+                <p>Of the students, for the students, by the students.</p>
+            </div>
+
+            <div class="auth-card">
+
+                <h2>Create your account</h2>
+
+                <p class="auth-description">
+                    Join your class and start contributing.
+                </p>
+
+                <form method="POST" class="auth-form">
+
+                    <div>
+                        <label for="display_name">
+                            Display name
+                        </label>
+
+                        <input
+                            id="display_name"
+                            name="display_name"
+                            type="text"
+                            maxlength="40"
+                            autocomplete="name"
+                            placeholder="What should your classmates see?"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="username">
+                            Username
+                        </label>
+
+                        <input
+                            id="username"
+                            name="username"
+                            type="text"
+                            maxlength="30"
+                            autocomplete="username"
+                            placeholder="Choose a username"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            minlength="8"
+                            autocomplete="new-password"
+                            placeholder="At least 8 characters"
+                            required
+                        >
+                    </div>
+
+                    {% if error %}
+                        <p class="auth-error">{{ error }}</p>
+                    {% endif %}
+
+                    <button type="submit">
+                        Create account
+                    </button>
+
+                </form>
+
+                <p class="auth-switch">
+                    Already have an account?
+                    <a href="{{ url_for('login') }}">
+                        Log in
+                    </a>
+                </p>
+
+            </div>
+
+            <p class="auth-footer">
+                Class 8 · 2026–27
+            </p>
+
+        </div>
+
+    </main>
+
+</body>
+
+</html>

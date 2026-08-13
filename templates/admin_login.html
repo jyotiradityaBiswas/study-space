@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Admin | StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="auth-page">
+
+        <div class="auth-container">
+
+            <div class="auth-brand">
+
+                <h1>
+                    StudySpace
+                </h1>
+
+                <p>
+                    Administrator access
+                </p>
+
+            </div>
+
+
+            <div class="auth-card">
+
+                <h2>
+                    Admin login
+                </h2>
+
+                <p class="auth-description">
+                    Enter the administrator password to continue.
+                </p>
+
+
+                {% if error %}
+
+                    <p class="auth-error">
+                        {{ error }}
+                    </p>
+
+                {% endif %}
+
+
+                <form
+                    method="POST"
+                    class="auth-form"
+                >
+
+                    <div>
+
+                        <label for="password">
+                            Admin password
+                        </label>
+
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                    </div>
+
+
+                    <button type="submit">
+                        Continue
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <p class="auth-footer">
+                StudySpace administrator area
+            </p>
+
+        </div>
+
+    </main>
+
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>

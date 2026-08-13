@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="nav-brand"
+        >
+            StudySpace
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('index') }}">
+                Resources
+            </a>
+
+            <a href="{{ url_for('doubts') }}">
+                Doubts
+            </a>
+
+            <a href="{{ url_for('upload') }}">
+                Upload
+            </a>
+
+            <a href="{{ url_for('leaderboard') }}">
+                Leaderboard
+            </a>
+
+            <a href="{{ url_for('profile') }}">
+                Profile
+            </a>
+
+        </div>
+
+
+        <div class="nav-actions">
+
+            <div class="notification-wrapper">
+
+                <button
+                    type="button"
+                    class="notification-button"
+                    id="notification-button"
+                    aria-label="Notifications"
+                >
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='images/bell.svg'
+                        ) }}"
+                        alt=""
+                    >
+
+                    {% if unread_notifications > 0 %}
+
+                        <span class="notification-badge">
+                            {{ unread_notifications }}
+                        </span>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="notification-popup"
+                    id="notification-popup"
+                    hidden
+                >
+
+                    <div class="notification-popup-header">
+
+                        <h3>
+                            Notifications
+                        </h3>
+
+                        <a href="{{ url_for('notifications') }}">
+                            View all
+                        </a>
+
+                    </div>
+
+
+                    <div class="notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <a
+                                    href="{{ url_for('notifications') }}"
+                                    class="
+                                        notification-item
+                                        {% if not notification.is_read %}
+                                            unread
+                                        {% endif %}
+                                    "
+                                >
+
+                                    <div class="notification-dot"></div>
+
+
+                                    <div class="notification-content">
+
+                                        <strong>
+                                            {{ notification.title }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message }}
+                                        </p>
+
+                                        <span>
+                                            {{ notification.created_at }}
+                                        </span>
+
+                                    </div>
+
+                                </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="notification-empty">
+
+                                <div class="notification-empty-icon">
+                                    ✓
+                                </div>
+
+                                <p>
+                                    You're all caught up.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+            >
+                <span id="theme-icon">☾</span>
+            </button>
+
+        </div>
+
+    </nav>
+
+    <header class="hero">
+
+        <div class="hero-content">
+
+            <p class="eyebrow">CLASS 8 · 2026–27</p>
+
+            <div class="hero-title-row">
+
+                <h1>StudySpace</h1>
+
+            </div>
+
+            <p class="tagline">
+                Of the students, for the students, by the students.
+            </p>
+
+        </div>
+
+    </header>
+
+    <main>
+
+        {% for subject in subjects %}
+
+            <section>
+                <h2>{{ subject.name }}</h2>
+
+                <div class="chapter-grid">
+
+                    {% for chapter in subject.chapters %}
+
+                        <a
+                            href="{{ url_for('chapter', chapter_id=chapter.id) }}"
+                            class="chapter-card"
+                        >
+                            <h3>{{ chapter.name }}</h3>
+
+                            <p>
+                                {{ chapter.resources | length }} resources
+                            </p>
+
+                            <span>View chapter →</span>
+                        </a>
+
+                    {% endfor %}
+
+                </div>
+            </section>
+
+        {% endfor %}
+
+    </main>
+
+    <footer class="site-footer">
+
+        <p>
+            Developed & Ideated by <strong>Jyotiraditya Biswas</strong>
+        </p><br>
+        <p>
+            Special thanks to them for testing:
+        </p>
+        <p><strong>Yuvaan Saurabh</strong></p>
+        <p><strong>Akshaj Lal</strong></p>
+        <p><strong>Rudraansh Dhond</strong></p>
+
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>

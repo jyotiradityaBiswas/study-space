@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Admin | StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+   <nav class="navbar">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="nav-brand"
+        >
+            StudySpace
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('index') }}">
+                Resources
+            </a>
+
+            <a href="{{ url_for('doubts') }}">
+                Doubts
+            </a>
+
+            <a href="{{ url_for('upload') }}">
+                Upload
+            </a>
+
+            <a href="{{ url_for('leaderboard') }}">
+                Leaderboard
+            </a>
+
+            <a href="{{ url_for('profile') }}">
+                Profile
+            </a>
+
+        </div>
+
+
+        <div class="nav-actions">
+
+            <div class="notification-wrapper">
+
+                <button
+                    type="button"
+                    class="notification-button"
+                    id="notification-button"
+                    aria-label="Notifications"
+                >
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='images/bell.svg'
+                        ) }}"
+                        alt=""
+                    >
+
+                    {% if unread_notifications > 0 %}
+
+                        <span class="notification-badge">
+                            {{ unread_notifications }}
+                        </span>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="notification-popup"
+                    id="notification-popup"
+                    hidden
+                >
+
+                    <div class="notification-popup-header">
+
+                        <h3>
+                            Notifications
+                        </h3>
+
+                        <a href="{{ url_for('notifications') }}">
+                            View all
+                        </a>
+
+                    </div>
+
+
+                    <div class="notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <a
+                                    href="{{ url_for('notifications') }}"
+                                    class="
+                                        notification-item
+                                        {% if not notification.is_read %}
+                                            unread
+                                        {% endif %}
+                                    "
+                                >
+
+                                    <div class="notification-dot"></div>
+
+
+                                    <div class="notification-content">
+
+                                        <strong>
+                                            {{ notification.title }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message }}
+                                        </p>
+
+                                        <span>
+                                            {{ notification.created_at }}
+                                        </span>
+
+                                    </div>
+
+                                </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="notification-empty">
+
+                                <div class="notification-empty-icon">
+                                    ✓
+                                </div>
+
+                                <p>
+                                    You're all caught up.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+            >
+                <span id="theme-icon">☾</span>
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <main class="admin-page">
+
+        <div class="admin-header">
+
+            <div>
+
+                <p class="eyebrow">
+                    ADMINISTRATION
+                </p>
+
+                <h1>
+                    Upload approvals
+                </h1>
+
+                <p>
+                    Review resources submitted by StudySpace users.
+                </p>
+
+            </div>
+
+
+            <a
+                href="{{ url_for('admin_logout') }}"
+                class="danger-link"
+            >
+                Admin logout
+            </a>
+
+        </div>
+
+
+        {% if submissions %}
+
+            <div class="admin-submissions">
+
+                {% for submission in submissions %}
+
+                    <article class="admin-submission">
+
+                        <div class="admin-submission-header">
+
+                            <div>
+
+                                <p class="card-label">
+                                    SUBMISSION #{{ submission.id }}
+                                </p>
+
+                                <h2>
+                                    {{ submission.subject }}
+                                    <span>·</span>
+                                    {{ submission.chapter }}
+                                </h2>
+
+                                <p class="admin-submitter">
+                                    Submitted by
+                                    <strong>
+                                        {{ submission.display_name }}
+                                    </strong>
+                                    (@{{ submission.username }})
+                                </p>
+
+                                <p class="admin-date">
+                                    {{ submission.created_at }}
+                                </p>
+
+                            </div>
+
+
+                            <span class="admin-status">
+                                Pending
+                            </span>
+
+                        </div>
+
+
+                        <div class="admin-files">
+
+                            <p class="card-label">
+                                FILES
+                            </p>
+
+
+                            {% for file in submission_files[submission.id] %}
+
+                                <div class="admin-file">
+
+                                    <div class="admin-file-info">
+
+                                        <span class="admin-file-name">
+                                            {{ file.original_filename }}
+                                        </span>
+
+                                    </div>
+
+
+                                    <a
+                                        href="{{ url_for(
+                                            'admin_view_upload',
+                                            file_id=file.id
+                                        ) }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="admin-view-file"
+                                    >
+                                        View
+                                    </a>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="admin-actions">
+
+                            <form
+                                method="POST"
+                                action="{{ url_for(
+                                    'approve_upload',
+                                    submission_id=submission.id
+                                ) }}"
+                            >
+
+                                <button
+                                    type="submit"
+                                    class="admin-approve-button"
+                                >
+                                    Approve
+                                </button>
+
+                            </form>
+
+
+                            <button
+                                type="button"
+                                class="admin-reject-button"
+                                onclick="openRejectModal(
+                                    {{ submission.id }}
+                                )"
+                            >
+                                Reject
+                            </button>
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    ✓
+                </div>
+
+                <h2>
+                    Nothing to review
+                </h2>
+
+                <p>
+                    There are currently no pending uploads.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </main>
+
+
+    <div
+        id="reject-modal"
+        class="modal-overlay"
+        hidden
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+        >
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeRejectModal()"
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+
+            <div class="modal-icon danger-icon">
+                !
+            </div>
+
+
+            <h2>
+                Reject submission?
+            </h2>
+
+
+            <p>
+                Tell the uploader why their submission was rejected.
+            </p>
+
+
+            <form
+                id="reject-form"
+                method="POST"
+            >
+
+                <div class="delete-account-form">
+
+                    <label for="rejection-reason">
+                        Reason
+                    </label>
+
+                    <textarea
+                        id="rejection-reason"
+                        name="reason"
+                        rows="4"
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <div class="modal-actions">
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        onclick="closeRejectModal()"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="modal-danger-button"
+                    >
+                        Reject submission
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        function openRejectModal(submissionId) {
+
+            const modal =
+                document.getElementById(
+                    "reject-modal"
+                );
+
+            const form =
+                document.getElementById(
+                    "reject-form"
+                );
+
+            form.action =
+                "/admin/reject/" + submissionId;
+
+            modal.hidden = false;
+
+            document.body.classList.add(
+                "modal-open"
+            );
+
+        }
+
+
+        function closeRejectModal() {
+
+            const modal =
+                document.getElementById(
+                    "reject-modal"
+                );
+
+            modal.hidden = true;
+
+            document.body.classList.remove(
+                "modal-open"
+            );
+
+        }
+
+
+        document
+            .getElementById("reject-modal")
+            .addEventListener(
+                "click",
+                function(event) {
+
+                    if (
+                        event.target === this
+                    ) {
+                        closeRejectModal();
+                    }
+
+                }
+            );
+
+    </script>
+
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Upload | StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <nav class="navbar">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="nav-brand"
+        >
+            StudySpace
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('index') }}">
+                Resources
+            </a>
+
+            <a href="{{ url_for('doubts') }}">
+                Doubts
+            </a>
+
+            <a href="{{ url_for('upload') }}">
+                Upload
+            </a>
+
+            <a href="{{ url_for('leaderboard') }}">
+                Leaderboard
+            </a>
+
+            <a href="{{ url_for('profile') }}">
+                Profile
+            </a>
+
+        </div>
+
+
+        <div class="nav-actions">
+
+            <div class="notification-wrapper">
+
+                <button
+                    type="button"
+                    class="notification-button"
+                    id="notification-button"
+                    aria-label="Notifications"
+                >
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='images/bell.svg'
+                        ) }}"
+                        alt=""
+                    >
+
+                    {% if unread_notifications > 0 %}
+
+                        <span class="notification-badge">
+                            {{ unread_notifications }}
+                        </span>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="notification-popup"
+                    id="notification-popup"
+                    hidden
+                >
+
+                    <div class="notification-popup-header">
+
+                        <h3>
+                            Notifications
+                        </h3>
+
+                        <a href="{{ url_for('notifications') }}">
+                            View all
+                        </a>
+
+                    </div>
+
+
+                    <div class="notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <a
+                                    href="{{ url_for('notifications') }}"
+                                    class="
+                                        notification-item
+                                        {% if not notification.is_read %}
+                                            unread
+                                        {% endif %}
+                                    "
+                                >
+
+                                    <div class="notification-dot"></div>
+
+
+                                    <div class="notification-content">
+
+                                        <strong>
+                                            {{ notification.title }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message }}
+                                        </p>
+
+                                        <span>
+                                            {{ notification.created_at }}
+                                        </span>
+
+                                    </div>
+
+                                </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="notification-empty">
+
+                                <div class="notification-empty-icon">
+                                    ✓
+                                </div>
+
+                                <p>
+                                    You're all caught up.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+            >
+                <span id="theme-icon">☾</span>
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <main class="form-page">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="back-link"
+        >
+            ← Back to resources
+        </a>
+
+
+        <div class="form-header">
+
+            <p class="eyebrow">
+                CONTRIBUTE
+            </p>
+
+            <h1>
+                Upload resources
+            </h1>
+
+            <p>
+                Share useful study material with your classmates.
+                Every upload is reviewed before being added to StudySpace.
+            </p>
+
+        </div>
+
+
+        {% if error %}
+
+            <p class="form-error">
+                {{ error }}
+            </p>
+
+        {% endif %}
+
+
+        <form
+            method="POST"
+            action="{{ url_for('upload') }}"
+            enctype="multipart/form-data"
+            class="doubt-form upload-form"
+        >
+
+
+            <div class="form-field">
+
+                <label for="subject">
+                    Subject
+                </label>
+
+                <select
+                    id="subject"
+                    name="subject"
+                    required
+                >
+
+                    <option
+                        value=""
+                        selected
+                        disabled
+                    >
+                        Select a subject
+                    </option>
+
+                    {% for subject in subjects %}
+
+                        <option value="{{ subject.name }}">
+                            {{ subject.name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="form-field">
+
+                <label for="chapter">
+                    Chapter
+                </label>
+
+                <select
+                    id="chapter"
+                    name="chapter"
+                    required
+                    disabled
+                >
+
+                    <option
+                        value=""
+                        selected
+                        disabled
+                    >
+                        Select a subject first
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-field">
+
+                <label for="files">
+                    Files
+                </label>
+
+                <input
+                    id="files"
+                    name="files"
+                    type="file"
+                    multiple
+                    required
+                >
+
+                <p class="field-help">
+                    You can select one or multiple files.
+                    Your upload will be reviewed before publication.
+                </p>
+
+            </div>
+
+
+            <div class="form-actions">
+
+                <a
+                    href="{{ url_for('index') }}"
+                    class="secondary-button"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Submit for approval
+                </button>
+
+            </div>
+
+
+        </form>
+
+    </main>
+
+
+    <script>
+
+        const subjectSelect =
+            document.getElementById("subject");
+
+        const chapterSelect =
+            document.getElementById("chapter");
+
+        const subjects =
+            {{ subjects | tojson }};
+
+
+        subjectSelect.addEventListener(
+            "change",
+            () => {
+
+                const selectedSubject =
+                    subjects.find(
+                        subject =>
+                            subject.name === subjectSelect.value
+                    );
+
+
+                chapterSelect.innerHTML = "";
+
+
+                if (!selectedSubject) {
+
+                    chapterSelect.disabled = true;
+
+
+                    const option =
+                        document.createElement("option");
+
+                    option.value = "";
+                    option.textContent =
+                        "Select a subject first";
+
+                    option.disabled = true;
+                    option.selected = true;
+
+
+                    chapterSelect.appendChild(option);
+
+                    return;
+
+                }
+
+
+                const placeholder =
+                    document.createElement("option");
+
+                placeholder.value = "";
+                placeholder.textContent =
+                    "Select a chapter";
+
+                placeholder.disabled = true;
+                placeholder.selected = true;
+
+
+                chapterSelect.appendChild(
+                    placeholder
+                );
+
+
+                selectedSubject.chapters.forEach(
+                    chapter => {
+
+                        const option =
+                            document.createElement("option");
+
+                        option.value =
+                            chapter.name;
+
+                        option.textContent =
+                            chapter.name;
+
+
+                        chapterSelect.appendChild(
+                            option
+                        );
+
+                    }
+                );
+
+
+                chapterSelect.disabled =
+                    selectedSubject.chapters.length === 0;
+
+            }
+        );
+
+    </script>
+
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Doubts | StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="nav-brand"
+        >
+            StudySpace
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('index') }}">
+                Resources
+            </a>
+
+            <a href="{{ url_for('doubts') }}">
+                Doubts
+            </a>
+
+            <a href="{{ url_for('upload') }}">
+                Upload
+            </a>
+
+            <a href="{{ url_for('leaderboard') }}">
+                Leaderboard
+            </a>
+
+            <a href="{{ url_for('profile') }}">
+                Profile
+            </a>
+
+        </div>
+
+
+        <div class="nav-actions">
+
+            <div class="notification-wrapper">
+
+                <button
+                    type="button"
+                    class="notification-button"
+                    id="notification-button"
+                    aria-label="Notifications"
+                >
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='images/bell.svg'
+                        ) }}"
+                        alt=""
+                    >
+
+                    {% if unread_notifications > 0 %}
+
+                        <span class="notification-badge">
+                            {{ unread_notifications }}
+                        </span>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="notification-popup"
+                    id="notification-popup"
+                    hidden
+                >
+
+                    <div class="notification-popup-header">
+
+                        <h3>
+                            Notifications
+                        </h3>
+
+                        <a href="{{ url_for('notifications') }}">
+                            View all
+                        </a>
+
+                    </div>
+
+
+                    <div class="notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <a
+                                    href="{{ url_for('notifications') }}"
+                                    class="
+                                        notification-item
+                                        {% if not notification.is_read %}
+                                            unread
+                                        {% endif %}
+                                    "
+                                >
+
+                                    <div class="notification-dot"></div>
+
+
+                                    <div class="notification-content">
+
+                                        <strong>
+                                            {{ notification.title }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message }}
+                                        </p>
+
+                                        <span>
+                                            {{ notification.created_at }}
+                                        </span>
+
+                                    </div>
+
+                                </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="notification-empty">
+
+                                <div class="notification-empty-icon">
+                                    ✓
+                                </div>
+
+                                <p>
+                                    You're all caught up.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+            >
+                <span id="theme-icon">☾</span>
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <main class="forum-page">
+
+        <header class="forum-header">
+
+            <div>
+
+                {% if viewing_my_doubts %}
+
+                    <a
+                        href="{{ url_for('doubts') }}"
+                        class="doubts-back-link"
+                    >
+                        ← All doubts
+                    </a>
+
+                    <p class="eyebrow">
+                        YOUR QUESTIONS
+                    </p>
+
+                    <h1>
+                        Your doubts
+                    </h1>
+
+                    <p>
+                        Questions you've asked in the StudySpace community.
+                    </p>
+
+                {% else %}
+
+                    <p class="eyebrow">
+                        CLASS 8 · DOUBT FORUM
+                    </p>
+
+                    <h1>
+                        Doubts
+                    </h1>
+
+                    <p>
+                        Ask questions, help your classmates,
+                        and learn together.
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+
+            <div class="doubts-actions">
+
+                {% if not viewing_my_doubts %}
+
+                    <a
+                        href="{{ url_for('my_doubts') }}"
+                        class="secondary-button"
+                    >
+                        Your doubts
+                    </a>
+
+                {% else %}
+
+                    <a
+                        href="{{ url_for('doubts') }}"
+                        class="secondary-button"
+                    >
+                        All doubts
+                    </a>
+
+                {% endif %}
+
+
+                <a
+                    href="{{ url_for('create_doubt') }}"
+                    class="primary-button"
+                >
+                    + Ask a doubt
+                </a>
+
+            </div>
+
+        </header>
+
+
+        <section class="doubt-list">
+
+            {% for doubt in doubts %}
+
+                <a
+                    href="{{ url_for(
+                        'view_doubt',
+                        doubt_id=doubt.id
+                    ) }}"
+                    class="doubt-card"
+                >
+
+                    <div class="doubt-card-content">
+
+                        <div class="doubt-meta">
+
+                            {% if doubt.subject %}
+
+                                <span>
+                                    {{ doubt.subject }}
+                                </span>
+
+                            {% endif %}
+
+
+                            {% if doubt.chapter %}
+
+                                <span>
+                                    {{ doubt.chapter }}
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <h2>
+                            {{ doubt.title }}
+                        </h2>
+
+
+                        <p>
+                            {{ doubt.body | truncate(160) }}
+                        </p>
+
+
+                        <div class="doubt-footer">
+
+                            <span class="doubt-author">
+
+                                {% if doubt.profile_picture %}
+
+                                    <img
+                                        src="{{ url_for(
+                                            'static',
+                                            filename='uploads/profile_pictures/' + doubt.profile_picture
+                                        ) }}"
+                                        alt=""
+                                        class="avatar-small"
+                                    >
+
+                                {% else %}
+
+                                    <span
+                                        class="
+                                            avatar-small
+                                            avatar-fallback
+                                        "
+                                    >
+                                        {{ doubt.display_name[0] | upper }}
+                                    </span>
+
+                                {% endif %}
+
+
+                                <span>
+                                    {{ doubt.display_name }}
+                                </span>
+
+                            </span>
+
+
+                            <span>
+
+                                {{ doubt.reply_count }}
+
+                                {% if doubt.reply_count == 1 %}
+                                    reply
+                                {% else %}
+                                    replies
+                                {% endif %}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <span class="doubt-arrow">
+                        →
+                    </span>
+
+                </a>
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        ?
+                    </div>
+
+
+                    {% if viewing_my_doubts %}
+
+                        <h2>
+                            You haven't asked any doubts
+                        </h2>
+
+                        <p>
+                            Ask a question and get help from your classmates.
+                        </p>
+
+                        <a
+                            href="{{ url_for('create_doubt') }}"
+                            class="primary-button"
+                        >
+                            Ask a doubt
+                        </a>
+
+                    {% else %}
+
+                        <h2>
+                            No doubts yet
+                        </h2>
+
+                        <p>
+                            Be the first person to ask a question.
+                        </p>
+
+                        <a
+                            href="{{ url_for('create_doubt') }}"
+                            class="primary-button"
+                        >
+                            Ask the first doubt
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+        </section>
+
+    </main>
+
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>

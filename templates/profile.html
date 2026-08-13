@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Profile | StudySpace</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+   <nav class="navbar">
+
+        <a
+            href="{{ url_for('index') }}"
+            class="nav-brand"
+        >
+            StudySpace
+        </a>
+
+
+        <div class="nav-links">
+
+            <a href="{{ url_for('index') }}">
+                Resources
+            </a>
+
+            <a href="{{ url_for('doubts') }}">
+                Doubts
+            </a>
+
+            <a href="{{ url_for('upload') }}">
+                Upload
+            </a>
+
+            <a href="{{ url_for('leaderboard') }}">
+                Leaderboard
+            </a>
+
+            <a href="{{ url_for('profile') }}">
+                Profile
+            </a>
+
+        </div>
+
+
+        <div class="nav-actions">
+
+            <div class="notification-wrapper">
+
+                <button
+                    type="button"
+                    class="notification-button"
+                    id="notification-button"
+                    aria-label="Notifications"
+                >
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='images/bell.svg'
+                        ) }}"
+                        alt=""
+                    >
+
+                    {% if unread_notifications > 0 %}
+
+                        <span class="notification-badge">
+                            {{ unread_notifications }}
+                        </span>
+
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="notification-popup"
+                    id="notification-popup"
+                    hidden
+                >
+
+                    <div class="notification-popup-header">
+
+                        <h3>
+                            Notifications
+                        </h3>
+
+                        <a href="{{ url_for('notifications') }}">
+                            View all
+                        </a>
+
+                    </div>
+
+
+                    <div class="notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <a
+                                    href="{{ url_for('notifications') }}"
+                                    class="
+                                        notification-item
+                                        {% if not notification.is_read %}
+                                            unread
+                                        {% endif %}
+                                    "
+                                >
+
+                                    <div class="notification-dot"></div>
+
+
+                                    <div class="notification-content">
+
+                                        <strong>
+                                            {{ notification.title }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message }}
+                                        </p>
+
+                                        <span>
+                                            {{ notification.created_at }}
+                                        </span>
+
+                                    </div>
+
+                                </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="notification-empty">
+
+                                <div class="notification-empty-icon">
+                                    ✓
+                                </div>
+
+                                <p>
+                                    You're all caught up.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle theme"
+            >
+                <span id="theme-icon">☾</span>
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <main class="profile-page">
+
+        <section class="profile-hero">
+
+            <div class="profile-identity">
+
+                {% if user.profile_picture %}
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='uploads/profile_pictures/' + user.profile_picture
+                        ) }}"
+                        alt="Profile picture"
+                        class="profile-avatar profile-avatar-hero"
+                    >
+
+                {% else %}
+
+                    <div class="profile-avatar profile-avatar-hero avatar-fallback">
+                        {{ user.display_name[0] | upper }}
+                    </div>
+
+                {% endif %}
+
+
+                <div class="profile-identity-text">
+
+                    <p class="eyebrow">
+                        YOUR PROFILE
+                    </p>
+
+                    <h1>
+                        {{ user.display_name }}
+                    </h1>
+
+                    <p>
+                        @{{ user.username }}
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="profile-grid">
+
+
+            <div class="profile-card">
+
+                <p class="card-label">
+                    CONTRIBUTION POINTS
+                </p>
+
+                <strong class="points-value">
+                    {{ points }}
+                </strong>
+
+                <p>
+                    Keep contributing to help your class.
+                </p>
+
+            </div>
+
+
+            <div class="profile-card">
+
+                <h2>
+                    Profile picture
+                </h2>
+
+                <p>
+                    Add a profile picture so your classmates
+                    can recognize you.
+                </p>
+
+
+                <form
+                    method="POST"
+                    action="{{ url_for('upload_profile_picture') }}"
+                    enctype="multipart/form-data"
+                >
+
+                    <label
+                        for="profile-picture"
+                        class="secondary-button"
+                    >
+                        Choose image
+                    </label>
+
+                    <input
+                        id="profile-picture"
+                        name="profile_picture"
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        hidden
+                        onchange="this.form.submit()"
+                    >
+
+                </form>
+
+
+                {% if user.profile_picture %}
+
+                    <button
+                        type="button"
+                        class="delete-picture-button"
+                        id="open-remove-picture"
+                    >
+                        Remove profile picture
+                    </button>
+
+                {% endif %}
+
+
+                <p class="muted">
+                    PNG, JPG, JPEG or WebP.
+                </p>
+
+            </div>
+
+
+            <div class="profile-card">
+
+                <h2>
+                    Profile settings
+                </h2>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('update_profile') }}"
+                >
+
+                    <label for="display_name">
+                        Display name
+                    </label>
+
+                    <input
+                        id="display_name"
+                        name="display_name"
+                        type="text"
+                        value="{{ user.display_name }}"
+                        maxlength="40"
+                        required
+                    >
+
+                    <button type="submit">
+                        Save changes
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <div class="profile-card">
+
+                <h2>
+                    Account
+                </h2>
+
+                <p>
+                    Username
+                </p>
+
+                <strong>
+                    @{{ user.username }}
+                </strong>
+
+                <p class="muted">
+                    Your username cannot currently be changed.
+                </p>
+
+                <a
+                    href="{{ url_for('logout') }}"
+                    class="danger-link"
+                >
+                    Log out
+                </a>
+
+            </div>
+
+
+            <div class="profile-card danger-zone">
+
+                <h2>
+                    Delete Account
+                </h2>
+
+                <p>
+                    Deleting your account permanently removes
+                    your profile and contribution history.
+                </p>
+
+                <button
+                    type="button"
+                    class="delete-account-button"
+                    id="open-delete-account"
+                >
+                    Delete account
+                </button>
+
+            </div>
+
+
+        </section>
+
+    </main>
+
+
+    <!-- Remove Profile Picture Modal -->
+
+    <div
+        id="remove-picture-modal"
+        class="modal-overlay"
+        hidden
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-picture-title"
+        >
+
+            <button
+                type="button"
+                class="modal-close"
+                data-close-modal
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+            <div class="modal-icon warning-icon">
+                ?
+            </div>
+
+            <h2 id="remove-picture-title">
+                Remove profile picture?
+            </h2>
+
+            <p>
+                Your profile picture will be removed and your
+                account will return to the default avatar.
+            </p>
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    data-close-modal
+                >
+                    Cancel
+                </button>
+
+                <form
+                    method="POST"
+                    action="{{ url_for('delete_profile_picture') }}"
+                >
+                    <button
+                        type="submit"
+                        class="modal-danger-button"
+                    >
+                        Remove picture
+                    </button>
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Delete Account Modal -->
+
+    <div
+        id="delete-account-modal"
+        class="modal-overlay"
+        hidden
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+        >
+
+            <button
+                type="button"
+                class="modal-close"
+                data-close-modal
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+            <div class="modal-icon danger-icon">
+                !
+            </div>
+
+            <h2 id="delete-account-title">
+                Delete your account?
+            </h2>
+
+            <p>
+                This permanently deletes your StudySpace account,
+                profile, and contribution history. This action
+                cannot be undone.
+            </p>
+
+            <form
+                method="POST"
+                action="{{ url_for('delete_account') }}"
+                class="delete-account-form"
+            >
+
+                <label for="delete-password">
+                    Enter your password to continue
+                </label>
+
+                <input
+                    id="delete-password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    placeholder="Your password"
+                    required
+                >
+
+                {% if delete_error == "invalid_password" %}
+
+                    <p class="modal-error">
+                        Incorrect password. Your account was not deleted.
+                    </p>
+
+                {% endif %}
+
+                <div class="modal-actions">
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        data-close-modal
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="modal-danger-button"
+                    >
+                        Permanently delete
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+
+</html>
