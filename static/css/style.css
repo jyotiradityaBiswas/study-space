@@ -137,7 +137,7 @@ section h2 {
 
 @media (max-width: 520px) {
     header {
-        padding: 40px 18px 34px;
+        padding: 40px 50px 34px;
     }
 
     header h1 {
@@ -545,10 +545,6 @@ section h2 {
         padding: 12px 16px;
     }
 
-    .nav-brand {
-        font-size: 0.95rem;
-    }
-
     .nav-links {
         gap: 2px;
     }
@@ -561,6 +557,10 @@ section h2 {
     #theme-toggle {
         width: 34px;
         height: 34px;
+    }
+
+    .nav-brand {
+        display: none;
     }
 }
 
