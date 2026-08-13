@@ -3,6 +3,7 @@ import re
 import uuid
 from functools import wraps
 from PIL import Image
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -36,10 +37,19 @@ from services.drive import (
     upload_file
 )
 
+from services.content_filter import validate_content
+
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
+
+app.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 
 PENDING_UPLOAD_FOLDER = os.path.join(
     app.root_path,
@@ -51,6 +61,8 @@ os.makedirs(
     exist_ok=True
 )
 
+MAX_DOUBTS_PER_DAY = 4
+MAX_REPLIES_PER_HOUR = 5
 
 ALLOWED_IMAGE_EXTENSIONS = {
     "png",
@@ -676,6 +688,22 @@ def create_doubt():
             ""
         ).strip()
 
+        valid, error = validate_content(title)
+
+        if not valid:
+            return render_template(
+                "create_doubt.html",
+                error=error
+            )
+
+        valid, error = validate_content(body)
+
+        if not valid:
+            return render_template(
+                "create_doubt.html",
+                error=error
+            )
+
         subject = request.form.get(
             "subject",
             ""
@@ -696,6 +724,27 @@ def create_doubt():
             )
 
         connection = get_connection()
+
+        doubt_count = connection.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM doubts
+            WHERE user_id = %s
+            AND created_at >= NOW() - INTERVAL '24 hours'
+            """,
+            (session["user_id"],)
+        ).fetchone()["count"]
+
+        if doubt_count >= MAX_DOUBTS_PER_DAY:
+            connection.close()
+
+            return render_template(
+                "create_doubt.html",
+                error=(
+                    "You can post a maximum of "
+                    f"{MAX_DOUBTS_PER_DAY} doubts every 24 hours."
+                )
+            )
 
         cursor = connection.execute(
             """
@@ -815,6 +864,17 @@ def add_reply(doubt_id):
         ""
     ).strip()
 
+    valid, error = validate_content(body)
+
+    if not valid:
+        return redirect(
+            url_for(
+                "view_doubt",
+                doubt_id=doubt_id,
+                error=error
+            )
+        )
+
     if not body:
         return redirect(
             url_for(
@@ -832,6 +892,30 @@ def add_reply(doubt_id):
         )
 
     connection = get_connection()
+
+    reply_count = connection.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM replies
+        WHERE user_id = %s
+        AND created_at >= NOW() - INTERVAL '1 hour'
+        """,
+        (session["user_id"],)
+    ).fetchone()["count"]
+
+    if reply_count >= MAX_REPLIES_PER_HOUR:
+        connection.close()
+
+        return redirect(
+            url_for(
+                "view_doubt",
+                doubt_id=doubt_id,
+                error=(
+                    "You can post a maximum of "
+                    f"{MAX_REPLIES_PER_HOUR} replies per hour."
+                )
+            )
+        )
 
     doubt = connection.execute(
         """
@@ -1517,7 +1601,7 @@ def approve_upload(submission_id):
             10
         )
     )
-    
+
     connection.commit()
     connection.close()
 

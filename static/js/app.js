@@ -247,6 +247,7 @@ if (
                             ".notification-badge"
                         );
 
+
                     if (badge) {
                         badge.remove();
                     }
@@ -274,6 +275,7 @@ if (
                             dot.remove();
 
                         });
+
 
                 } catch (error) {
 
@@ -312,3 +314,34 @@ if (
     );
 
 }
+
+document
+    .querySelectorAll("form")
+    .forEach((form) => {
+
+        const approvalButton =
+            form.querySelector(
+                "#approval-button"
+            );
+
+        if (!approvalButton) {
+            return;
+        }
+
+        form.addEventListener(
+            "submit",
+            () => {
+
+                if (approvalButton.disabled) {
+                    return;
+                }
+
+                approvalButton.disabled = true;
+
+                approvalButton.textContent =
+                    "Submitting...";
+
+            }
+        );
+
+    });
