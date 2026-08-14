@@ -1291,7 +1291,7 @@ def delete_profile_picture():
     user = connection.execute(
         """
         SELECT
-            profile_picture_url,
+            profile_picture,
             profile_picture_public_id
         FROM users
         WHERE id = %s
@@ -1322,7 +1322,7 @@ def delete_profile_picture():
         """
         UPDATE users
         SET
-            profile_picture_url = NULL,
+            profile_picture = NULL,
             profile_picture_public_id = NULL
         WHERE id = %s
         """,
