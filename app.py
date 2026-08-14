@@ -515,30 +515,10 @@ def upload_profile_picture():
     try:
         image = Image.open(file)
         image.verify()
-
-        file.stream.seek(0)
-
-        image = Image.open(file)
-        image = image.convert("RGB")
-
     except Exception:
         return redirect(url_for("profile"))
 
-    image.thumbnail(
-        (512, 512),
-        Image.Resampling.LANCZOS
-    )
-
     connection = get_connection()
-
-    user = connection.execute(
-        """
-        SELECT profile_picture
-        FROM users
-        WHERE id = %s
-        """,
-        (session["user_id"],)
-    ).fetchone()
 
     try:
 
@@ -547,7 +527,14 @@ def upload_profile_picture():
             folder="studyspace/profile_pictures",
             public_id=str(session["user_id"]),
             overwrite=True,
-            resource_type="image"
+            resource_type="image",
+            transformation=[
+                {
+                    "width": 512,
+                    "height": 512,
+                    "crop": "limit"
+                }
+            ]
         )
 
     except Exception:
@@ -1280,7 +1267,10 @@ def mark_solution(
         )
     )
 
-@app.route("/profile/delete-picture", methods=["POST"])
+@app.route(
+    "/profile/delete-picture",
+    methods=["POST"]
+)
 @login_required
 def delete_profile_picture():
 
@@ -1290,9 +1280,7 @@ def delete_profile_picture():
 
     user = connection.execute(
         """
-        SELECT
-            profile_picture,
-            profile_picture_public_id
+        SELECT profile_picture
         FROM users
         WHERE id = %s
         """,
@@ -1303,27 +1291,19 @@ def delete_profile_picture():
         connection.close()
         return redirect(url_for("login"))
 
-    public_id = user["profile_picture_public_id"]
-
-    if public_id:
-
-        try:
-
-            cloudinary.uploader.destroy(
-                public_id,
-                resource_type="image"
-            )
-
-        except Exception:
-            connection.close()
-            return redirect(url_for("profile"))
+    try:
+        cloudinary.uploader.destroy(
+            f"studyspace/profile_pictures/{user_id}",
+            resource_type="image"
+        )
+    except Exception:
+        connection.close()
+        return redirect(url_for("profile"))
 
     connection.execute(
         """
         UPDATE users
-        SET
-            profile_picture = NULL,
-            profile_picture_public_id = NULL
+        SET profile_picture = NULL
         WHERE id = %s
         """,
         (user_id,)
