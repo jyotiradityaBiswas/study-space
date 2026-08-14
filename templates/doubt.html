@@ -223,7 +223,7 @@
                         <img
                             src="{{ doubt.profile_picture }}"
                             alt=""
-                            class="profile-avatar profile-avatar-hero"
+                            class="avatar-small"
                         >
 
                     {% else %}
@@ -343,10 +343,7 @@
                             {% if reply.profile_picture %}
 
                                 <img
-                                    src="{{ url_for(
-                                        'static',
-                                        filename='uploads/profile_pictures/' + reply.profile_picture
-                                    ) }}"
+                                    src="{{ reply.profile_picture }}"
                                     alt=""
                                     class="avatar-small"
                                 >

@@ -22,6 +22,23 @@ BLOCKED_TERMS = {
     "smartass",
     "bitch",
     "fck",
+    "mkc",
+    "mc",
+    "madarchod",
+    "behenchod",
+    "bhenchod",
+    "bkc",
+    "chutiya",
+    "chutia",
+    "saala",
+    "sala",
+    "chut",
+    "chootiya",
+    "chootiye",
+    "chutiye",
+    "laude",
+    "lulli",
+    "lund"
 }
 
 
