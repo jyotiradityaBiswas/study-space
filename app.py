@@ -4,6 +4,7 @@ import uuid
 from functools import wraps
 from PIL import Image
 from datetime import timedelta
+from io import BytesIO
 
 import cloudinary
 import cloudinary.uploader
@@ -515,45 +516,55 @@ def upload_profile_picture():
     try:
         image = Image.open(file)
         image.verify()
-    except Exception:
+
+        file.stream.seek(0)
+
+        image = Image.open(file)
+        image = image.convert("RGB")
+
+        image.thumbnail(
+            (512, 512),
+            Image.Resampling.LANCZOS
+        )
+
+        image_buffer = BytesIO()
+
+        image.save(
+            image_buffer,
+            format="WEBP",
+            quality=85
+        )
+
+        image_buffer.seek(0)
+
+    except Exception as error:
+        print("IMAGE PROCESSING ERROR:", error)
         return redirect(url_for("profile"))
 
     connection = get_connection()
 
     try:
+
         upload_result = cloudinary.uploader.upload(
-            file,
+            image_buffer,
             folder="studyspace/profile_pictures",
             public_id=str(session["user_id"]),
             overwrite=True,
             resource_type="image"
         )
 
-        print("CLOUDINARY RESULT:", upload_result)
-
-    except Exception as error:
-        print("CLOUDINARY ERROR:", error)
-        connection.close()
-        return redirect(url_for("profile"))
-
-    try:
-
-        upload_result = cloudinary.uploader.upload(
-            file,
-            folder="studyspace/profile_pictures",
-            public_id=str(session["user_id"]),
-            overwrite=True,
-            resource_type="image",
-            transformation=[
-                {
-                    "width": 512,
-                    "height": 512,
-                    "crop": "limit"
-                }
-            ]
+        print(
+            "CLOUDINARY URL:",
+            upload_result["secure_url"]
         )
 
-    except Exception:
+    except Exception as error:
+
+        print(
+            "CLOUDINARY ERROR:",
+            error
+        )
+
         connection.close()
         return redirect(url_for("profile"))
 
@@ -568,17 +579,6 @@ def upload_profile_picture():
             session["user_id"]
         )
     )
-
-    check = connection.execute(
-        """
-        SELECT profile_picture
-        FROM users
-        WHERE id = %s
-        """,
-        (session["user_id"],)
-    ).fetchone()
-
-    print("DATABASE AFTER UPDATE:", check)
 
     connection.commit()
     connection.close()
