@@ -2563,6 +2563,11 @@ body.modal-open {
     width: 19px;
     height: 19px;
     display: block;
+    filter: brightness(0);
+}
+
+[data-theme="dark"] .auth-form .password-toggle img {
+    filter: brightness(0) invert(1);
 }
 
 .doubt-author-row {
@@ -2702,4 +2707,29 @@ body.modal-open {
 
 .delete-doubt-modal .danger-button:active {
     transform: translateY(1px);
+}
+
+.modal-card {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+
+    width: min(520px, calc(100% - 32px));
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(0, 0, 0, 0.55);
+
+    z-index: 100;
 }
