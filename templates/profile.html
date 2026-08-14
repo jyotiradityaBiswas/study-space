@@ -187,11 +187,8 @@
                 {% if user.profile_picture %}
 
                     <img
-                        src="{{ url_for(
-                            'static',
-                            filename='uploads/profile_pictures/' + user.profile_picture
-                        ) }}"
-                        alt="Profile picture"
+                        src="{{ user.profile_picture }}"
+                        alt=""
                         class="profile-avatar profile-avatar-hero"
                     >
 

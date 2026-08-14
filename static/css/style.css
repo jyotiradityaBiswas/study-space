@@ -2582,10 +2582,11 @@ body.modal-open {
 
     padding: 0;
 
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
     border-radius: 8px;
 
     background: transparent;
+    color: var(--text);
 
     display: flex;
     align-items: center;
@@ -2595,7 +2596,7 @@ body.modal-open {
 }
 
 .doubt-more-button:hover {
-    background: var(--surface-secondary);
+    background: var(--surface-hover);
 }
 
 .doubt-more-button img {
@@ -2613,7 +2614,7 @@ body.modal-open {
     padding: 6px;
 
     background: var(--surface);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
     border-radius: 10px;
 
     box-shadow: var(--shadow);
@@ -2630,6 +2631,7 @@ body.modal-open {
     border-radius: 7px;
 
     background: transparent;
+    color: var(--text);
 
     text-align: left;
 
@@ -2637,7 +2639,7 @@ body.modal-open {
 }
 
 .doubt-more-menu button:hover {
-    background: var(--surface-secondary);
+    background: var(--surface-hover);
 }
 
 .doubt-more-menu .danger-option {
@@ -2649,6 +2651,6 @@ body.modal-open {
 
     margin-top: 8px;
 
+    color: var(--muted);
     font-size: 13px;
-    color: var(--text-secondary);
 }

@@ -5,6 +5,9 @@ from functools import wraps
 from PIL import Image
 from datetime import timedelta
 
+import cloudinary
+import cloudinary.uploader
+
 from dotenv import load_dotenv
 
 from flask import (
@@ -49,6 +52,13 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="Lax"
+)
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
 )
 
 PENDING_UPLOAD_FOLDER = os.path.join(
@@ -514,12 +524,9 @@ def upload_profile_picture():
     except Exception:
         return redirect(url_for("profile"))
 
-    image.thumbnail((512, 512), Image.Resampling.LANCZOS)
-
-    filename = f"{session['user_id']}.webp"
-    filepath = os.path.join(
-        PROFILE_UPLOAD_FOLDER,
-        filename
+    image.thumbnail(
+        (512, 512),
+        Image.Resampling.LANCZOS
     )
 
     connection = get_connection()
@@ -533,21 +540,19 @@ def upload_profile_picture():
         (session["user_id"],)
     ).fetchone()
 
-    if user and user["profile_picture"]:
-        old_path = os.path.join(
-            PROFILE_UPLOAD_FOLDER,
-            user["profile_picture"]
+    try:
+
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="studyspace/profile_pictures",
+            public_id=str(session["user_id"]),
+            overwrite=True,
+            resource_type="image"
         )
 
-        if os.path.exists(old_path):
-            os.remove(old_path)
-
-    image.save(
-        filepath,
-        "WEBP",
-        quality=85,
-        method=6
-    )
+    except Exception:
+        connection.close()
+        return redirect(url_for("profile"))
 
     connection.execute(
         """
@@ -556,7 +561,7 @@ def upload_profile_picture():
         WHERE id = %s
         """,
         (
-            filename,
+            upload_result["secure_url"],
             session["user_id"]
         )
     )
@@ -565,7 +570,7 @@ def upload_profile_picture():
     connection.close()
 
     return redirect(url_for("profile"))
-
+    
 @app.route("/profile/delete", methods=["POST"])
 @login_required
 def delete_account():
@@ -1278,13 +1283,16 @@ def mark_solution(
 @app.route("/profile/delete-picture", methods=["POST"])
 @login_required
 def delete_profile_picture():
+
     user_id = session["user_id"]
 
     connection = get_connection()
 
     user = connection.execute(
         """
-        SELECT profile_picture
+        SELECT
+            profile_picture_url,
+            profile_picture_public_id
         FROM users
         WHERE id = %s
         """,
@@ -1295,23 +1303,27 @@ def delete_profile_picture():
         connection.close()
         return redirect(url_for("login"))
 
-    filename = user["profile_picture"]
+    public_id = user["profile_picture_public_id"]
 
-    if filename:
-        picture_path = os.path.join(
-            app.static_folder,
-            "uploads",
-            "profile_pictures",
-            filename
-        )
+    if public_id:
 
-        if os.path.exists(picture_path):
-            os.remove(picture_path)
+        try:
+
+            cloudinary.uploader.destroy(
+                public_id,
+                resource_type="image"
+            )
+
+        except Exception:
+            connection.close()
+            return redirect(url_for("profile"))
 
     connection.execute(
         """
         UPDATE users
-        SET profile_picture = NULL
+        SET
+            profile_picture_url = NULL,
+            profile_picture_public_id = NULL
         WHERE id = %s
         """,
         (user_id,)
