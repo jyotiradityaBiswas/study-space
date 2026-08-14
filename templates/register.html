@@ -75,15 +75,29 @@
                             Password
                         </label>
 
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            minlength="8"
-                            autocomplete="new-password"
-                            placeholder="At least 8 characters"
-                            required
-                        >
+                        <div class="password-input-wrapper">
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                minlength="8"
+                                autocomplete="new-password"
+                                placeholder="At least 8 characters"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                aria-label="Show password"
+                                aria-controls="password"
+                            >
+                                <img
+                                    src="{{ url_for('static', filename='images/eye.svg') }}"
+                                    alt=""
+                                >
+                            </button>
+                        </div>
                     </div>
 
                     {% if error %}

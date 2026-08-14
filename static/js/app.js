@@ -345,3 +345,52 @@ document
         );
 
     });
+    
+document
+    .querySelectorAll(".password-toggle")
+    .forEach((button) => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                const inputId =
+                    button.getAttribute(
+                        "aria-controls"
+                    );
+
+                const input =
+                    document.getElementById(
+                        inputId
+                    );
+
+                const icon =
+                    button.querySelector("img");
+
+                if (!input || !icon) {
+                    return;
+                }
+
+                const isPassword =
+                    input.type === "password";
+
+                input.type =
+                    isPassword
+                        ? "text"
+                        : "password";
+
+                icon.src =
+                    isPassword
+                        ? "/static/images/eye-off.svg"
+                        : "/static/images/eye.svg";
+
+                button.setAttribute(
+                    "aria-label",
+                    isPassword
+                        ? "Hide password"
+                        : "Show password"
+                );
+            }
+        );
+
+    });

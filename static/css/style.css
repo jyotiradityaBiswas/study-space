@@ -2521,3 +2521,41 @@ body.modal-open {
     font-size: 14px;
     line-height: 1.4;
 }
+
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper input {
+    padding-right: 48px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+
+    width: 32px;
+    height: 32px;
+
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    background: transparent;
+}
+
+.password-toggle img {
+    width: 18px;
+    height: 18px;
+    display: block;
+}

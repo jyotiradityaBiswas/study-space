@@ -722,7 +722,7 @@ def create_doubt():
                 error=error
             )
         
-        valid, error = validate_content()
+        valid, error = validate_content(chapter)
         
         if not valid:
             return render_template(
