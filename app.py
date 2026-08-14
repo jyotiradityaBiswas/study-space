@@ -521,6 +521,22 @@ def upload_profile_picture():
     connection = get_connection()
 
     try:
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="studyspace/profile_pictures",
+            public_id=str(session["user_id"]),
+            overwrite=True,
+            resource_type="image"
+        )
+
+        print("CLOUDINARY RESULT:", upload_result)
+
+    except Exception as error:
+        print("CLOUDINARY ERROR:", error)
+        connection.close()
+        return redirect(url_for("profile"))
+
+    try:
 
         upload_result = cloudinary.uploader.upload(
             file,
@@ -552,6 +568,17 @@ def upload_profile_picture():
             session["user_id"]
         )
     )
+
+    check = connection.execute(
+        """
+        SELECT profile_picture
+        FROM users
+        WHERE id = %s
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    print("DATABASE AFTER UPDATE:", check)
 
     connection.commit()
     connection.close()
