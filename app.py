@@ -1639,6 +1639,7 @@ def approve_upload(submission_id):
     files = connection.execute(
         """
         SELECT
+            id,
             original_filename,
             stored_filename
         FROM upload_files
@@ -1647,11 +1648,11 @@ def approve_upload(submission_id):
         (submission_id,)
     ).fetchall()
 
-    connection.close()
-
     service = get_drive_service()
 
-    subjects = get_cached_structure(service)
+    subjects = get_cached_structure(
+        service
+    )
 
     selected_subject = next(
         (
@@ -1663,6 +1664,8 @@ def approve_upload(submission_id):
     )
 
     if not selected_subject:
+        connection.close()
+
         return (
             "Subject folder not found in Google Drive.",
             500
@@ -1678,6 +1681,8 @@ def approve_upload(submission_id):
     )
 
     if not selected_chapter:
+        connection.close()
+
         return (
             "Chapter folder not found in Google Drive.",
             500
@@ -1698,20 +1703,38 @@ def approve_upload(submission_id):
             )
 
             if not os.path.exists(filepath):
+
+                connection.close()
+
                 return (
                     f"Pending file not found: "
                     f"{file['original_filename']}",
                     500
                 )
 
-            upload_file(
+            drive_file = upload_file(
                 service,
                 filepath,
                 file["original_filename"],
                 selected_chapter["id"]
             )
 
+            connection.execute(
+                """
+                UPDATE upload_files
+                SET drive_file_id = %s
+                WHERE id = %s
+                """,
+                (
+                    drive_file["id"],
+                    file["id"]
+                )
+            )
+
     except Exception as error:
+
+        connection.rollback()
+        connection.close()
 
         print(
             f"Drive upload failed: {error}"
@@ -1722,8 +1745,6 @@ def approve_upload(submission_id):
             "Google Drive. The submission remains pending.",
             500
         )
-
-    connection = get_connection()
 
     connection.execute(
         """
@@ -1784,7 +1805,11 @@ def approve_upload(submission_id):
             os.remove(filepath)
 
     try:
-        os.rmdir(submission_folder)
+
+        os.rmdir(
+            submission_folder
+        )
+
     except OSError:
         pass
 
@@ -2053,7 +2078,8 @@ def admin_view_upload(file_id):
         """
         SELECT
             upload_files.*,
-            upload_submissions.user_id
+            upload_submissions.user_id,
+            upload_submissions.status
         FROM upload_files
         JOIN upload_submissions
             ON upload_files.submission_id = upload_submissions.id
@@ -2066,6 +2092,13 @@ def admin_view_upload(file_id):
 
     if not file:
         return "File not found", 404
+
+    if file["drive_file_id"]:
+
+        return redirect(
+            f"https://drive.google.com/file/d/"
+            f"{file['drive_file_id']}/view"
+        )
 
     filepath = os.path.join(
         PENDING_UPLOAD_FOLDER,
