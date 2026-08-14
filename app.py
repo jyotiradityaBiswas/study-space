@@ -867,6 +867,139 @@ def view_doubt(doubt_id):
         replies=replies
     )
 
+@app.route(
+    "/doubts/<int:doubt_id>/edit",
+    methods=["POST"]
+)
+@login_required
+def edit_doubt(doubt_id):
+
+    title = request.form.get(
+        "title",
+        ""
+    ).strip()
+
+    body = request.form.get(
+        "body",
+        ""
+    ).strip()
+
+    subject = request.form.get(
+        "subject",
+        ""
+    ).strip()
+
+    chapter = request.form.get(
+        "chapter",
+        ""
+    ).strip()
+
+    if not title or not body:
+        return redirect(
+            url_for(
+                "view_doubt",
+                doubt_id=doubt_id
+            )
+        )
+
+    if len(title) > 200 or len(body) > 3000:
+        return redirect(
+            url_for(
+                "view_doubt",
+                doubt_id=doubt_id
+            )
+        )
+
+    connection = get_connection()
+
+    doubt = connection.execute(
+        """
+        SELECT user_id
+        FROM doubts
+        WHERE id = %s
+        """,
+        (doubt_id,)
+    ).fetchone()
+
+    if not doubt:
+        connection.close()
+        return "Doubt not found", 404
+
+    if doubt["user_id"] != session["user_id"]:
+        connection.close()
+        return "You are not allowed to edit this doubt.", 403
+
+    connection.execute(
+        """
+        UPDATE doubts
+        SET
+            title = %s,
+            body = %s,
+            subject = %s,
+            chapter = %s,
+            is_edited = TRUE
+        WHERE id = %s
+        """,
+        (
+            title,
+            body,
+            subject or None,
+            chapter or None,
+            doubt_id
+        )
+    )
+
+    connection.commit()
+    connection.close()
+
+    return redirect(
+        url_for(
+            "view_doubt",
+            doubt_id=doubt_id
+        )
+    )
+
+@app.route(
+    "/doubts/<int:doubt_id>/delete",
+    methods=["POST"]
+)
+@login_required
+def delete_doubt(doubt_id):
+
+    connection = get_connection()
+
+    doubt = connection.execute(
+        """
+        SELECT user_id
+        FROM doubts
+        WHERE id = %s
+        """,
+        (doubt_id,)
+    ).fetchone()
+
+    if not doubt:
+        connection.close()
+        return "Doubt not found", 404
+
+    if doubt["user_id"] != session["user_id"]:
+        connection.close()
+        return "You are not allowed to delete this doubt.", 403
+
+    connection.execute(
+        """
+        DELETE FROM doubts
+        WHERE id = %s
+        """,
+        (doubt_id,)
+    )
+
+    connection.commit()
+    connection.close()
+
+    return redirect(
+        url_for("doubts")
+    )
+
 
 @app.route(
     "/doubts/int:<doubt_id>/reply",

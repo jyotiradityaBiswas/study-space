@@ -2530,17 +2530,21 @@ body.modal-open {
     padding-right: 48px;
 }
 
-.password-toggle {
+.auth-form .password-toggle {
     position: absolute;
     top: 50%;
-    right: 12px;
+    right: 10px;
     transform: translateY(-50%);
 
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
 
     padding: 0;
-    border: 0;
+    margin: 0;
+
+    border: none;
+    border-radius: 8px;
+
     background: transparent;
 
     display: flex;
@@ -2550,12 +2554,101 @@ body.modal-open {
     cursor: pointer;
 }
 
-.password-toggle:hover {
+.auth-form .password-toggle:hover {
     background: transparent;
+    transform: translateY(-50%);
 }
 
-.password-toggle img {
-    width: 18px;
-    height: 18px;
+.auth-form .password-toggle img {
+    width: 19px;
+    height: 19px;
     display: block;
+}
+
+.doubt-author-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.doubt-actions {
+    position: relative;
+}
+
+.doubt-more-button {
+    width: 36px;
+    height: 36px;
+
+    padding: 0;
+
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+
+    background: transparent;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+}
+
+.doubt-more-button:hover {
+    background: var(--surface-secondary);
+}
+
+.doubt-more-button img {
+    width: 20px;
+    height: 20px;
+}
+
+.doubt-more-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+
+    min-width: 140px;
+
+    padding: 6px;
+
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+
+    box-shadow: var(--shadow);
+
+    z-index: 20;
+}
+
+.doubt-more-menu button {
+    width: 100%;
+
+    padding: 9px 11px;
+
+    border: 0;
+    border-radius: 7px;
+
+    background: transparent;
+
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.doubt-more-menu button:hover {
+    background: var(--surface-secondary);
+}
+
+.doubt-more-menu .danger-option {
+    color: #dc2626;
+}
+
+.edited-label {
+    display: block;
+
+    margin-top: 8px;
+
+    font-size: 13px;
+    color: var(--text-secondary);
 }

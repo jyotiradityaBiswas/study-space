@@ -44,6 +44,7 @@ updateIcon();
 
 
 if (toggle) {
+
     toggle.addEventListener(
         "click",
         () => {
@@ -64,8 +65,10 @@ if (toggle) {
             );
 
             updateIcon();
+
         }
     );
+
 }
 
 
@@ -80,6 +83,7 @@ function openModal(modal) {
     document.body.classList.add(
         "modal-open"
     );
+
 }
 
 
@@ -91,16 +95,19 @@ function closeModal(modal) {
 
     modal.hidden = true;
 
-    if (
-        (!removePictureModal ||
-            removePictureModal.hidden) &&
-        (!deleteAccountModal ||
-            deleteAccountModal.hidden)
-    ) {
+    const anyOpenModal =
+        document.querySelector(
+            ".modal-overlay:not([hidden])"
+        );
+
+    if (!anyOpenModal) {
+
         document.body.classList.remove(
             "modal-open"
         );
+
     }
+
 }
 
 
@@ -109,11 +116,14 @@ if (removePictureButton) {
     removePictureButton.addEventListener(
         "click",
         () => {
+
             openModal(
                 removePictureModal
             );
+
         }
     );
+
 }
 
 
@@ -136,14 +146,18 @@ if (deleteAccountButton) {
 
                 setTimeout(
                     () => {
+
                         passwordInput.focus();
+
                     },
                     50
                 );
 
             }
+
         }
     );
+
 }
 
 
@@ -178,7 +192,11 @@ document
                 if (
                     event.target === overlay
                 ) {
-                    closeModal(overlay);
+
+                    closeModal(
+                        overlay
+                    );
+
                 }
 
             }
@@ -195,13 +213,15 @@ document.addEventListener(
             return;
         }
 
-        closeModal(
-            removePictureModal
-        );
+        document
+            .querySelectorAll(
+                ".modal-overlay:not([hidden])"
+            )
+            .forEach((modal) => {
 
-        closeModal(
-            deleteAccountModal
-        );
+                closeModal(modal);
+
+            });
 
     }
 );
@@ -236,9 +256,11 @@ if (
 
 
                     if (!response.ok) {
+
                         throw new Error(
                             "Failed to mark notifications as read."
                         );
+
                     }
 
 
@@ -315,6 +337,9 @@ if (
 
 }
 
+
+/* Upload approval debounce */
+
 document
     .querySelectorAll("form")
     .forEach((form) => {
@@ -336,7 +361,8 @@ document
                     return;
                 }
 
-                approvalButton.disabled = true;
+                approvalButton.disabled =
+                    true;
 
                 approvalButton.textContent =
                     "Submitting...";
@@ -345,7 +371,10 @@ document
         );
 
     });
-    
+
+
+/* Password visibility toggle */
+
 document
     .querySelectorAll(".password-toggle")
     .forEach((button) => {
@@ -364,10 +393,15 @@ document
                         inputId
                     );
 
-                const icon =
-                    button.querySelector("img");
+                const passwordIcon =
+                    button.querySelector(
+                        "img"
+                    );
 
-                if (!input || !icon) {
+                if (
+                    !input ||
+                    !passwordIcon
+                ) {
                     return;
                 }
 
@@ -379,7 +413,7 @@ document
                         ? "text"
                         : "password";
 
-                icon.src =
+                passwordIcon.src =
                     isPassword
                         ? "/static/images/eye-off.svg"
                         : "/static/images/eye.svg";
@@ -390,7 +424,160 @@ document
                         ? "Hide password"
                         : "Show password"
                 );
+
             }
         );
 
     });
+
+
+/* Doubt three-dot menu */
+
+const doubtMoreButton =
+    document.querySelector(
+        "[data-doubt-menu]"
+    );
+
+const doubtMoreMenu =
+    document.querySelector(
+        "[data-doubt-menu-popup]"
+    );
+
+const editDoubtButton =
+    document.querySelector(
+        "[data-edit-doubt]"
+    );
+
+const deleteDoubtButton =
+    document.querySelector(
+        "[data-delete-doubt]"
+    );
+
+const editDoubtModal =
+    document.getElementById(
+        "edit-doubt-modal"
+    );
+
+const deleteDoubtModal =
+    document.getElementById(
+        "delete-doubt-modal"
+    );
+
+
+if (
+    doubtMoreButton &&
+    doubtMoreMenu
+) {
+
+    doubtMoreButton.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            const isOpen =
+                !doubtMoreMenu.hidden;
+
+            doubtMoreMenu.hidden =
+                isOpen;
+
+            doubtMoreButton.setAttribute(
+                "aria-expanded",
+                String(!isOpen)
+            );
+
+        }
+    );
+
+
+    document.addEventListener(
+        "click",
+        (event) => {
+
+            if (
+                !doubtMoreMenu.contains(
+                    event.target
+                ) &&
+                !doubtMoreButton.contains(
+                    event.target
+                )
+            ) {
+
+                doubtMoreMenu.hidden =
+                    true;
+
+                doubtMoreButton.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+if (editDoubtButton) {
+
+    editDoubtButton.addEventListener(
+        "click",
+        () => {
+
+            if (doubtMoreMenu) {
+
+                doubtMoreMenu.hidden =
+                    true;
+
+            }
+
+            if (doubtMoreButton) {
+
+                doubtMoreButton.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+            }
+
+            openModal(
+                editDoubtModal
+            );
+
+        }
+    );
+
+}
+
+
+if (deleteDoubtButton) {
+
+    deleteDoubtButton.addEventListener(
+        "click",
+        () => {
+
+            if (doubtMoreMenu) {
+
+                doubtMoreMenu.hidden =
+                    true;
+
+            }
+
+            if (doubtMoreButton) {
+
+                doubtMoreButton.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+            }
+
+            openModal(
+                deleteDoubtModal
+            );
+
+        }
+    );
+
+}
