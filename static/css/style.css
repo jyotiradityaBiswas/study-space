@@ -2654,3 +2654,52 @@ body.modal-open {
     color: var(--muted);
     font-size: 13px;
 }
+
+.edit-doubt-form input,
+.edit-doubt-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--input-background);
+    color: var(--text-color);
+    font: inherit;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.edit-doubt-form input:focus,
+.edit-doubt-form textarea:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-color-transparent);
+}
+
+.edit-doubt-form textarea {
+    resize: vertical;
+    min-height: 150px;
+}
+
+.delete-doubt-modal .danger-button {
+    border: none;
+    border-radius: 10px;
+    padding: 11px 18px;
+    background: #dc2626;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
+}
+
+.delete-doubt-modal .danger-button:hover {
+    background: #b91c1c;
+}
+
+.delete-doubt-modal .danger-button:active {
+    transform: translateY(1px);
+}
