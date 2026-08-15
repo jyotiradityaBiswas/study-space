@@ -1,7 +1,9 @@
 import os
 import time
 
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -19,29 +21,49 @@ CACHE_DURATION = 60
 
 
 def get_drive_service():
-    private_key = os.environ["GOOGLE_PRIVATE_KEY"].replace(
-        "\\n",
-        "\n"
+
+    credentials = None
+
+    refresh_token = os.environ.get(
+        "GOOGLE_REFRESH_TOKEN"
     )
 
-    service_account_info = {
-        "type": os.environ["GOOGLE_TYPE"],
-        "project_id": os.environ["GOOGLE_PROJECT_ID"],
-        "private_key_id": os.environ["GOOGLE_PRIVATE_KEY_ID"],
-        "private_key": private_key,
-        "client_email": os.environ["GOOGLE_CLIENT_EMAIL"],
-        "client_id": os.environ["GOOGLE_CLIENT_ID"],
-        "token_uri": os.environ["GOOGLE_TOKEN_URI"]
-    }
+    client_id = os.environ.get(
+        "GOOGLE_CLIENT_ID"
+    )
 
-    credentials = (
-        service_account
-        .Credentials
-        .from_service_account_info(
-            service_account_info,
-            scopes=SCOPES
+    client_secret = os.environ.get(
+        "GOOGLE_CLIENT_SECRET"
+    )
+
+    if not refresh_token:
+        raise RuntimeError(
+            "GOOGLE_REFRESH_TOKEN is not configured."
         )
+
+    if not client_id:
+        raise RuntimeError(
+            "GOOGLE_CLIENT_ID is not configured."
+        )
+
+    if not client_secret:
+        raise RuntimeError(
+            "GOOGLE_CLIENT_SECRET is not configured."
+        )
+
+    credentials = Credentials(
+        token=None,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=client_id,
+        client_secret=client_secret,
+        scopes=SCOPES
     )
+
+    if credentials.expired:
+        credentials.refresh(
+            Request()
+        )
 
     return build(
         "drive",
@@ -51,6 +73,7 @@ def get_drive_service():
 
 
 def get_children(service, folder_id):
+
     query = (
         f"'{folder_id}' in parents "
         "and trashed = false"
@@ -62,17 +85,23 @@ def get_children(service, folder_id):
         orderBy="name"
     ).execute()
 
-    files = response.get("files", [])
+    files = response.get(
+        "files",
+        []
+    )
 
     for file in files:
+
         file["url"] = (
-            f"https://drive.google.com/open?id={file['id']}"
+            f"https://drive.google.com/open?id="
+            f"{file['id']}"
         )
 
     return files
 
 
 def get_folder(service, folder_id):
+
     response = service.files().get(
         fileId=folder_id,
         fields="id, name, mimeType"
@@ -82,12 +111,14 @@ def get_folder(service, folder_id):
 
 
 def get_structure(service):
+
     subjects = []
 
     for subject in get_children(
         service,
         ROOT_FOLDER_ID
     ):
+
         if (
             subject["mimeType"]
             != "application/vnd.google-apps.folder"
@@ -100,6 +131,7 @@ def get_structure(service):
             service,
             subject["id"]
         ):
+
             if (
                 chapter["mimeType"]
                 != "application/vnd.google-apps.folder"
@@ -112,6 +144,7 @@ def get_structure(service):
                 service,
                 chapter["id"]
             ):
+
                 resources.append({
                     "name": resource["name"],
                     "id": resource["id"],
@@ -134,6 +167,7 @@ def get_structure(service):
 
 
 def get_cached_structure(service):
+
     global _structure_cache
     global _structure_cache_time
 
@@ -145,7 +179,10 @@ def get_cached_structure(service):
     ):
         return _structure_cache
 
-    _structure_cache = get_structure(service)
+    _structure_cache = get_structure(
+        service
+    )
+
     _structure_cache_time = now
 
     return _structure_cache
@@ -157,6 +194,7 @@ def upload_file(
     filename,
     folder_id
 ):
+
     metadata = {
         "name": filename,
         "parents": [folder_id]
@@ -174,27 +212,17 @@ def upload_file(
     ).execute()
 
 
-if __name__ == "__main__":
-    service = get_drive_service()
-    structure = get_structure(service)
-
-    for subject in structure:
-        print(f"\n{subject['name']}")
-
-        for chapter in subject["chapters"]:
-            print(f"  {chapter['name']}")
-
-            for resource in chapter["resources"]:
-                print(f"    - {resource['name']}")
-
 def upload_pending_file(
     service,
     filepath,
     filename
 ):
+
     metadata = {
         "name": filename,
-        "parents": [PENDING_UPLOAD_FOLDER_ID]
+        "parents": [
+            PENDING_UPLOAD_FOLDER_ID
+        ]
     }
 
     media = MediaFileUpload(
@@ -207,3 +235,30 @@ def upload_pending_file(
         media_body=media,
         fields="id, name, mimeType, webViewLink"
     ).execute()
+
+
+if __name__ == "__main__":
+
+    service = get_drive_service()
+
+    structure = get_structure(
+        service
+    )
+
+    for subject in structure:
+
+        print(
+            f"\n{subject['name']}"
+        )
+
+        for chapter in subject["chapters"]:
+
+            print(
+                f"  {chapter['name']}"
+            )
+
+            for resource in chapter["resources"]:
+
+                print(
+                    f"    - {resource['name']}"
+                )
