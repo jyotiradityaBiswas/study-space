@@ -1925,18 +1925,11 @@ def approve_upload(submission_id):
                 )
             )
 
-            cloudinary_url = (
-                cloudinary.utils.cloudinary_url(
-                    file["cloudinary_public_id"],
-                    resource_type=file["cloudinary_resource_type"]
-                )[0]
-            )
-
             response = requests.get(
-                cloudinary_url,
+                file["cloudinary_url"],
                 timeout=120
             )
-
+            
             response.raise_for_status()
 
             with open(
