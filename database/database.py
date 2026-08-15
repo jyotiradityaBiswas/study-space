@@ -105,6 +105,9 @@ def initialize_database():
                     original_filename TEXT NOT NULL,
                     stored_filename TEXT NOT NULL,
                     drive_file_id TEXT,
+                    cloudinary_public_id TEXT,
+                    cloudinary_url TEXT,
+                    cloudinary_resource_type TEXT,
 
                     FOREIGN KEY (submission_id)
                         REFERENCES upload_submissions(id)
