@@ -1545,14 +1545,22 @@ def upload():
             else:
                 resource_type = "raw"
 
+            stored_filename = (
+                f"{uuid.uuid4().hex}_"
+                f"{original_filename}"
+            )
+
+            public_id = (
+                f"studyspace/pending_uploads/"
+                f"{submission_id}/"
+                f"{uuid.uuid4().hex}"
+                f"{extension}"
+            )
+
             result = cloudinary.uploader.upload(
                 file,
-                resource_type=resource_type,
-                folder=(
-                    f"studyspace/pending_uploads/"
-                    f"{submission_id}"
-                ),
-                use_filename=False
+                public_id=public_id,
+                resource_type=resource_type
             )
 
             uploaded_cloudinary.append({
@@ -1567,16 +1575,18 @@ def upload():
                     original_filename,
                     stored_filename,
                     cloudinary_public_id,
-                    cloudinary_url
+                    cloudinary_url,
+                    cloudinary_resource_type
                 )
-                VALUES (%s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (
                     submission_id,
                     original_filename,
-                    original_filename,
+                    stored_filename,
                     result["public_id"],
-                    result["secure_url"]
+                    result["secure_url"],
+                    result["resource_type"]
                 )
             )
 
@@ -1841,7 +1851,8 @@ def approve_upload(submission_id):
             id,
             original_filename,
             cloudinary_public_id,
-            cloudinary_url
+            cloudinary_url,
+            cloudinary_resource_type
         FROM upload_files
         WHERE submission_id = %s
         """,
@@ -1917,7 +1928,7 @@ def approve_upload(submission_id):
             cloudinary_url = (
                 cloudinary.utils.cloudinary_url(
                     file["cloudinary_public_id"],
-                    resource_type="raw"
+                    resource_type=file["cloudinary_resource_type"]
                 )[0]
             )
 
@@ -1962,7 +1973,7 @@ def approve_upload(submission_id):
 
             cloudinary.uploader.destroy(
                 file["cloudinary_public_id"],
-                resource_type="raw"
+                resource_type=file["cloudinary_resource_type"]
             )
 
     except Exception as error:
