@@ -1733,12 +1733,13 @@ def approve_upload(submission_id):
 
     except Exception as error:
 
-        connection.rollback()
-        connection.close()
+        import traceback
 
-        print(
-            f"Drive upload failed: {error}"
-        )
+        print("========== DRIVE UPLOAD ERROR ==========")
+        print(f"Error type: {type(error).__name__}")
+        print(f"Error: {error}")
+        traceback.print_exc()
+        print("========================================")
 
         return (
             "The files could not be uploaded to "
