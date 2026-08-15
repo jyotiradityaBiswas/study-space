@@ -217,12 +217,9 @@ def upload_pending_file(
     filepath,
     filename
 ):
-
     metadata = {
         "name": filename,
-        "parents": [
-            PENDING_UPLOAD_FOLDER_ID
-        ]
+        "parents": [PENDING_UPLOAD_FOLDER_ID]
     }
 
     media = MediaFileUpload(
@@ -235,30 +232,3 @@ def upload_pending_file(
         media_body=media,
         fields="id, name, mimeType, webViewLink"
     ).execute()
-
-
-if __name__ == "__main__":
-
-    service = get_drive_service()
-
-    structure = get_structure(
-        service
-    )
-
-    for subject in structure:
-
-        print(
-            f"\n{subject['name']}"
-        )
-
-        for chapter in subject["chapters"]:
-
-            print(
-                f"  {chapter['name']}"
-            )
-
-            for resource in chapter["resources"]:
-
-                print(
-                    f"    - {resource['name']}"
-                )

@@ -1498,7 +1498,7 @@ def upload():
 
     submission_id = cursor.fetchone()["id"]
 
-    uploaded_cloudinary = []
+    uploaded_drive_files = []
 
     try:
 
@@ -1511,62 +1511,29 @@ def upload():
             if not original_filename:
                 continue
 
-            extension = (
-                os.path.splitext(
-                    original_filename
-                )[1]
-                .lower()
-            )
-
-            video_extensions = {
-                ".mp4",
-                ".mov",
-                ".avi",
-                ".mkv",
-                ".webm",
-                ".m4v"
-            }
-
-            image_extensions = {
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".gif",
-                ".webp",
-                ".bmp"
-            }
-
-            if extension in video_extensions:
-                resource_type = "video"
-
-            elif extension in image_extensions:
-                resource_type = "image"
-
-            else:
-                resource_type = "raw"
-
             stored_filename = (
                 f"{uuid.uuid4().hex}_"
                 f"{original_filename}"
             )
 
-            public_id = (
-                f"studyspace/pending_uploads/"
-                f"{submission_id}/"
-                f"{uuid.uuid4().hex}"
-                f"{extension}"
+            temp_path = os.path.join(
+                "/tmp",
+                stored_filename
             )
 
-            result = cloudinary.uploader.upload(
-                file,
-                public_id=public_id,
-                resource_type=resource_type
+            file.save(
+                temp_path
             )
 
-            uploaded_cloudinary.append({
-                "public_id": result["public_id"],
-                "resource_type": resource_type
-            })
+            drive_file = upload_pending_file(
+                service,
+                temp_path,
+                original_filename
+            )
+
+            uploaded_drive_files.append(
+                drive_file["id"]
+            )
 
             connection.execute(
                 """
@@ -1574,20 +1541,20 @@ def upload():
                     submission_id,
                     original_filename,
                     stored_filename,
-                    cloudinary_public_id,
-                    cloudinary_url,
-                    cloudinary_resource_type
+                    drive_file_id
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s)
                 """,
                 (
                     submission_id,
                     original_filename,
                     stored_filename,
-                    result["public_id"],
-                    result["secure_url"],
-                    result["resource_type"]
+                    drive_file["id"]
                 )
+            )
+
+            os.remove(
+                temp_path
             )
 
         connection.commit()
@@ -1597,7 +1564,7 @@ def upload():
         connection.rollback()
 
         print(
-            "========== CLOUDINARY UPLOAD ERROR =========="
+            "========== DRIVE UPLOAD ERROR =========="
         )
         print(
             f"Error type: {type(error).__name__}"
@@ -1606,18 +1573,24 @@ def upload():
             f"Error: {error}"
         )
         print(
-            "=============================================="
+            "========================================="
         )
 
-        for uploaded in uploaded_cloudinary:
+        for drive_file_id in uploaded_drive_files:
 
             try:
-                cloudinary.uploader.destroy(
-                    uploaded["public_id"],
-                    resource_type=uploaded["resource_type"]
+
+                service.files().delete(
+                    fileId=drive_file_id
+                ).execute()
+
+            except Exception as cleanup_error:
+
+                print(
+                    f"Failed to clean up Drive file "
+                    f"{drive_file_id}: "
+                    f"{cleanup_error}"
                 )
-            except Exception:
-                pass
 
         connection.close()
 
@@ -1737,34 +1710,32 @@ def reject_upload(submission_id):
     files = connection.execute(
         """
         SELECT
-            cloudinary_public_id,
-            cloudinary_resource_type
+            id,
+            drive_file_id
         FROM upload_files
         WHERE submission_id = %s
         """,
         (submission_id,)
     ).fetchall()
 
+    service = get_drive_service()
+
     try:
 
         for file in files:
 
-            if not file["cloudinary_public_id"]:
+            if not file["drive_file_id"]:
                 continue
 
-            cloudinary.uploader.destroy(
-                file["cloudinary_public_id"],
-                resource_type=(
-                    file["cloudinary_resource_type"]
-                    or "raw"
-                ),
-                invalidate=True
-            )
+            service.files().delete(
+                fileId=file["drive_file_id"]
+            ).execute()
 
         connection.execute(
             """
             UPDATE upload_submissions
-            SET status = %s,
+            SET
+                status = %s,
                 rejection_reason = %s,
                 reviewed_at = CURRENT_TIMESTAMP
             WHERE id = %s
@@ -1798,8 +1769,20 @@ def reject_upload(submission_id):
 
         connection.rollback()
 
+        import traceback
+
         print(
-            f"Cloudinary rejection cleanup failed: {error}"
+            "========== REJECTION ERROR =========="
+        )
+        print(
+            f"Error type: {type(error).__name__}"
+        )
+        print(
+            f"Error: {error}"
+        )
+        traceback.print_exc()
+        print(
+            "====================================="
         )
 
         connection.close()
@@ -1850,9 +1833,7 @@ def approve_upload(submission_id):
         SELECT
             id,
             original_filename,
-            cloudinary_public_id,
-            cloudinary_url,
-            cloudinary_resource_type
+            drive_file_id
         FROM upload_files
         WHERE submission_id = %s
         """,
@@ -1901,73 +1882,72 @@ def approve_upload(submission_id):
             500
         )
 
-    temporary_files = []
-
     try:
 
         for file in files:
 
-            if not file["cloudinary_public_id"]:
+            if not file["drive_file_id"]:
                 raise Exception(
-                    f"No Cloudinary asset for "
+                    f"No Drive file found for "
                     f"{file['original_filename']}"
                 )
 
-            extension = os.path.splitext(
-                file["original_filename"]
-            )[1]
+            service.files().update(
+                fileId=file["drive_file_id"],
+                addParents=selected_chapter["id"],
+                removeParents=PENDING_UPLOAD_FOLDER_ID,
+                fields="id, parents"
+            ).execute()
 
-            temp_path = os.path.join(
-                "/tmp",
+        connection.execute(
+            """
+            UPDATE upload_submissions
+            SET
+                status = 'approved',
+                reviewed_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            """,
+            (submission_id,)
+        )
+
+        connection.execute(
+            """
+            INSERT INTO notifications (
+                user_id,
+                title,
+                message
+            )
+            VALUES (%s, %s, %s)
+            """,
+            (
+                submission["user_id"],
+                "Upload approved",
                 (
-                    f"{uuid.uuid4().hex}"
-                    f"{extension}"
+                    f"Your {submission['subject']} → "
+                    f"{submission['chapter']} upload "
+                    f"has been approved and added to "
+                    f"StudySpace."
                 )
             )
+        )
 
-            response = requests.get(
-                file["cloudinary_url"],
-                timeout=120
+        connection.execute(
+            """
+            INSERT INTO contributions (
+                user_id,
+                type,
+                points
             )
-            
-            response.raise_for_status()
-
-            with open(
-                temp_path,
-                "wb"
-            ) as temporary_file:
-
-                temporary_file.write(
-                    response.content
-                )
-
-            temporary_files.append(
-                temp_path
+            VALUES (%s, %s, %s)
+            """,
+            (
+                submission["user_id"],
+                "study_material_upload",
+                10
             )
+        )
 
-            drive_file = upload_file(
-                service,
-                temp_path,
-                file["original_filename"],
-                selected_chapter["id"]
-            )
-
-            connection.execute(
-                """
-                UPDATE upload_files
-                SET drive_file_id = %s
-                WHERE id = %s
-                """,
-                (
-                    drive_file["id"],
-                    file["id"]
-                )
-            )
-
-            cloudinary.uploader.destroy(
-                file["cloudinary_public_id"],
-                resource_type=file["cloudinary_resource_type"]
-            )
+        connection.commit()
 
     except Exception as error:
 
@@ -1987,73 +1967,16 @@ def approve_upload(submission_id):
             "===================================="
         )
 
-        for filepath in temporary_files:
-
-            if os.path.exists(filepath):
-                os.remove(filepath)
-
         connection.rollback()
         connection.close()
 
         return (
-            "The files could not be uploaded to "
+            "The files could not be moved to "
             "Google Drive. The submission remains pending.",
             500
         )
 
-    connection.execute(
-        """
-        UPDATE upload_submissions
-        SET status = 'approved'
-        WHERE id = %s
-        """,
-        (submission_id,)
-    )
-
-    connection.execute(
-        """
-        INSERT INTO notifications (
-            user_id,
-            title,
-            message
-        )
-        VALUES (%s, %s, %s)
-        """,
-        (
-            submission["user_id"],
-            "Upload approved",
-            (
-                f"Your {submission['subject']} → "
-                f"{submission['chapter']} upload "
-                f"has been approved and added to "
-                f"StudySpace."
-            )
-        )
-    )
-
-    connection.execute(
-        """
-        INSERT INTO contributions (
-            user_id,
-            type,
-            points
-        )
-        VALUES (%s, %s, %s)
-        """,
-        (
-            submission["user_id"],
-            "study_material_upload",
-            10
-        )
-    )
-
-    connection.commit()
     connection.close()
-
-    for filepath in temporary_files:
-
-        if os.path.exists(filepath):
-            os.remove(filepath)
 
     return redirect(
         url_for("admin_dashboard")
@@ -2241,9 +2164,7 @@ def admin():
         error=None
     )
 
-@app.route(
-    "/admin/upload/file/<int:file_id>"
-)
+@app.route("/admin/upload/file/<int:file_id>")
 @admin_required
 def admin_view_upload(file_id):
 
@@ -2269,12 +2190,6 @@ def admin_view_upload(file_id):
     if not file:
         return "File not found", 404
 
-    if file["cloudinary_url"]:
-
-        return redirect(
-            file["cloudinary_url"]
-        )
-
     if file["drive_file_id"]:
 
         return redirect(
@@ -2282,7 +2197,7 @@ def admin_view_upload(file_id):
             f"{file['drive_file_id']}/view"
         )
 
-    return "File no longer exists", 404
+    return "Drive file not found", 404
 
 if __name__ == "__main__":
     app.run(
