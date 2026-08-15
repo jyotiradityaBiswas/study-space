@@ -11,6 +11,7 @@ SCOPES = [
 ]
 
 ROOT_FOLDER_ID = "1zOsOYCtlXu9C6qMyVb2X-haAtOzdj936"
+PENDING_UPLOAD_FOLDER_ID = "12Yocq__wvs_Reavq7OHyx0vZZCU30Vbk"
 
 _structure_cache = None
 _structure_cache_time = 0
@@ -185,3 +186,24 @@ if __name__ == "__main__":
 
             for resource in chapter["resources"]:
                 print(f"    - {resource['name']}")
+
+def upload_pending_file(
+    service,
+    filepath,
+    filename
+):
+    metadata = {
+        "name": filename,
+        "parents": [PENDING_UPLOAD_FOLDER_ID]
+    }
+
+    media = MediaFileUpload(
+        filepath,
+        resumable=True
+    )
+
+    return service.files().create(
+        body=metadata,
+        media_body=media,
+        fields="id, name, mimeType, webViewLink"
+    ).execute()

@@ -38,7 +38,9 @@ from services.drive import (
     get_cached_structure,
     get_children,
     get_folder,
-    upload_file
+    upload_file,
+    upload_pending_file,
+    PENDING_UPLOAD_FOLDER_ID
 )
 
 from services.content_filter import validate_content
@@ -62,16 +64,6 @@ cloudinary.config(
     secure=True
 )
 
-PENDING_UPLOAD_FOLDER = os.path.join(
-    app.root_path,
-    "pending_uploads"
-)
-
-os.makedirs(
-    PENDING_UPLOAD_FOLDER,
-    exist_ok=True
-)
-
 MAX_DOUBTS_PER_DAY = 4
 MAX_REPLIES_PER_HOUR = 5
 
@@ -81,18 +73,6 @@ ALLOWED_IMAGE_EXTENSIONS = {
     "jpeg",
     "webp"
 }
-
-PROFILE_UPLOAD_FOLDER = os.path.join(
-    app.root_path,
-    "static",
-    "uploads",
-    "profile_pictures"
-)
-
-os.makedirs(
-    PROFILE_UPLOAD_FOLDER,
-    exist_ok=True
-)
 
 initialize_database()
 
@@ -1393,7 +1373,6 @@ def upload():
             error=None
         )
 
-
     subject_name = request.form.get(
         "subject",
         ""
@@ -1403,7 +1382,6 @@ def upload():
         "chapter",
         ""
     ).strip()
-
 
     selected_subject = next(
         (
@@ -1422,7 +1400,6 @@ def upload():
             error="Please select a valid subject."
         )
 
-
     selected_chapter = next(
         (
             chapter
@@ -1440,7 +1417,6 @@ def upload():
             error="Please select a valid chapter."
         )
 
-
     files = request.files.getlist(
         "files"
     )
@@ -1451,7 +1427,6 @@ def upload():
         if file and file.filename
     ]
 
-
     if not files:
 
         return render_template(
@@ -1460,9 +1435,7 @@ def upload():
             error="Please select at least one file."
         )
 
-
     connection = get_connection()
-
 
     cursor = connection.execute(
         """
@@ -1483,62 +1456,76 @@ def upload():
 
     submission_id = cursor.fetchone()["id"]
 
+    try:
 
-    submission_folder = os.path.join(
-        PENDING_UPLOAD_FOLDER,
-        str(submission_id)
-    )
+        for file in files:
 
-    os.makedirs(
-        submission_folder,
-        exist_ok=True
-    )
+            original_filename = secure_filename(
+                file.filename
+            )
 
+            if not original_filename:
+                continue
 
-    for file in files:
+            stored_filename = (
+                f"{uuid.uuid4().hex}_"
+                f"{original_filename}"
+            )
 
-        original_filename = secure_filename(
-            file.filename
-        )
-
-        if not original_filename:
-            continue
-
-
-        stored_filename = (
-            f"{uuid.uuid4().hex}_"
-            f"{original_filename}"
-        )
-
-
-        file.save(
-            os.path.join(
-                submission_folder,
+            temp_path = os.path.join(
+                "/tmp",
                 stored_filename
+            )
+
+            file.save(temp_path)
+
+            drive_file = upload_pending_file(
+                service,
+                temp_path,
+                original_filename
+            )
+
+            connection.execute(
+                """
+                INSERT INTO upload_files (
+                    submission_id,
+                    original_filename,
+                    stored_filename,
+                    drive_file_id
+                )
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    submission_id,
+                    original_filename,
+                    stored_filename,
+                    drive_file["id"]
+                )
+            )
+
+            os.remove(temp_path)
+
+        connection.commit()
+
+    except Exception as error:
+
+        connection.rollback()
+        connection.close()
+
+        print(
+            f"Pending upload failed: {error}"
+        )
+
+        return render_template(
+            "upload.html",
+            subjects=subjects,
+            error=(
+                "The files could not be uploaded. "
+                "Please try again."
             )
         )
 
-
-        connection.execute(
-            """
-            INSERT INTO upload_files (
-                submission_id,
-                original_filename,
-                stored_filename
-            )
-            VALUES (%s, %s, %s)
-            """,
-            (
-                submission_id,
-                original_filename,
-                stored_filename
-            )
-        )
-
-
-    connection.commit()
     connection.close()
-
 
     return redirect(
         url_for("profile")
@@ -1641,7 +1628,7 @@ def approve_upload(submission_id):
         SELECT
             id,
             original_filename,
-            stored_filename
+            drive_file_id
         FROM upload_files
         WHERE submission_id = %s
         """,
@@ -1688,61 +1675,37 @@ def approve_upload(submission_id):
             500
         )
 
-    submission_folder = os.path.join(
-        PENDING_UPLOAD_FOLDER,
-        str(submission_id)
-    )
-
     try:
 
         for file in files:
 
-            filepath = os.path.join(
-                submission_folder,
-                file["stored_filename"]
-            )
-
-            if not os.path.exists(filepath):
-
-                connection.close()
-
-                return (
-                    f"Pending file not found: "
-                    f"{file['original_filename']}",
-                    500
+            if not file["drive_file_id"]:
+                raise Exception(
+                    f"No Drive file ID for "
+                    f"{file['original_filename']}"
                 )
 
-            drive_file = upload_file(
-                service,
-                filepath,
-                file["original_filename"],
-                selected_chapter["id"]
-            )
-
-            connection.execute(
-                """
-                UPDATE upload_files
-                SET drive_file_id = %s
-                WHERE id = %s
-                """,
-                (
-                    drive_file["id"],
-                    file["id"]
-                )
-            )
+            service.files().update(
+                fileId=file["drive_file_id"],
+                addParents=selected_chapter["id"],
+                removeParents=PENDING_UPLOAD_FOLDER_ID,
+                fields="id, parents"
+            ).execute()
 
     except Exception as error:
 
         import traceback
 
-        print("========== DRIVE UPLOAD ERROR ==========")
+        print("========== DRIVE MOVE ERROR ==========")
         print(f"Error type: {type(error).__name__}")
         print(f"Error: {error}")
         traceback.print_exc()
-        print("========================================")
+        print("======================================")
+
+        connection.close()
 
         return (
-            "The files could not be uploaded to "
+            "The files could not be moved to "
             "Google Drive. The submission remains pending.",
             500
         )
@@ -1750,7 +1713,8 @@ def approve_upload(submission_id):
     connection.execute(
         """
         UPDATE upload_submissions
-        SET status = 'approved'
+        SET status = 'approved',
+            reviewed_at = CURRENT_TIMESTAMP
         WHERE id = %s
         """,
         (submission_id,)
@@ -1795,25 +1759,6 @@ def approve_upload(submission_id):
     connection.commit()
     connection.close()
 
-    for file in files:
-
-        filepath = os.path.join(
-            submission_folder,
-            file["stored_filename"]
-        )
-
-        if os.path.exists(filepath):
-            os.remove(filepath)
-
-    try:
-
-        os.rmdir(
-            submission_folder
-        )
-
-    except OSError:
-        pass
-
     return redirect(
         url_for("admin_dashboard")
     )
@@ -1839,7 +1784,7 @@ def reject_upload(submission_id):
 
     submission = connection.execute(
         """
-        SELECT id, user_id
+        SELECT id, user_id, status
         FROM upload_submissions
         WHERE id = %s
         """,
@@ -1850,11 +1795,59 @@ def reject_upload(submission_id):
         connection.close()
         return "Submission not found", 404
 
+    if submission["status"] != "pending":
+        connection.close()
+
+        return redirect(
+            url_for("admin_dashboard")
+        )
+
+    files = connection.execute(
+        """
+        SELECT drive_file_id
+        FROM upload_files
+        WHERE submission_id = %s
+        """,
+        (submission_id,)
+    ).fetchall()
+
+    try:
+
+        service = get_drive_service()
+
+        for file in files:
+
+            if not file["drive_file_id"]:
+                continue
+
+            service.files().delete(
+                fileId=file["drive_file_id"]
+            ).execute()
+
+    except Exception as error:
+
+        import traceback
+
+        print("========== DRIVE DELETE ERROR ==========")
+        print(f"Error type: {type(error).__name__}")
+        print(f"Error: {error}")
+        traceback.print_exc()
+        print("=========================================")
+
+        connection.close()
+
+        return (
+            "The pending files could not be deleted "
+            "from Google Drive. The submission remains pending.",
+            500
+        )
+
     connection.execute(
         """
         UPDATE upload_submissions
         SET status = %s,
-            rejection_reason = %s
+            rejection_reason = %s,
+            reviewed_at = CURRENT_TIMESTAMP
         WHERE id = %s
         """,
         (
@@ -2078,12 +2071,8 @@ def admin_view_upload(file_id):
     file = connection.execute(
         """
         SELECT
-            upload_files.*,
-            upload_submissions.user_id,
-            upload_submissions.status
+            upload_files.drive_file_id
         FROM upload_files
-        JOIN upload_submissions
-            ON upload_files.submission_id = upload_submissions.id
         WHERE upload_files.id = %s
         """,
         (file_id,)
@@ -2094,26 +2083,12 @@ def admin_view_upload(file_id):
     if not file:
         return "File not found", 404
 
-    if file["drive_file_id"]:
+    if not file["drive_file_id"]:
+        return "Drive file not found", 404
 
-        return redirect(
-            f"https://drive.google.com/file/d/"
-            f"{file['drive_file_id']}/view"
-        )
-
-    filepath = os.path.join(
-        PENDING_UPLOAD_FOLDER,
-        str(file["submission_id"]),
-        file["stored_filename"]
-    )
-
-    if not os.path.exists(filepath):
-        return "File no longer exists", 404
-
-    return send_from_directory(
-        os.path.dirname(filepath),
-        file["stored_filename"],
-        as_attachment=False
+    return redirect(
+        f"https://drive.google.com/file/d/"
+        f"{file['drive_file_id']}/view"
     )
 
 if __name__ == "__main__":
